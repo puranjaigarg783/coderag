@@ -1,0 +1,97 @@
+RISC-V xv6 Boot Process: From Power-On to First Process
+The xv6 boot process on RISC-V follows a sequence of carefully orchestrated steps that transition from hardware initialization to the first user process:
+
+1. Power-On and Boot ROM
+QEMU's boot ROM starts at address 0x00001000
+The boot ROM initializes essential hardware
+It jumps to address 0x80000000 in machine mode where the kernel is loaded
+2. Kernel Entry in Machine Mode
+From kernel/entry.S:
+
+Each CPU (hart) begins execution at _entry
+A stack is set up for C code:
+la sp, stack0       # Load stack0 address
+li a0, 1024*4       # 4KB stack size
+csrr a1, mhartid    # Get CPU ID
+addi a1, a1, 1
+mul a0, a0, a1      # Calculate offset
+add sp, sp, a0      # Set stack pointer
+Control transfers to start() function in start.c
+3. Machine Mode Configuration
+From kernel/start.c:
+
+Prepares for transition to supervisor mode:
+// Set M Previous Privilege mode to Supervisor
+x = r_mstatus();
+x &= ~MSTATUS_MPP_MASK;
+x |= MSTATUS_MPP_S;
+w_mstatus(x);
+
+// Set M Exception Program Counter to main
+w_mepc((uint64)main);
+Disables paging temporarily with w_satp(0)
+Delegates interrupts and exceptions to supervisor mode
+Configures Physical Memory Protection
+Sets up timer interrupts with timerinit()
+Stores CPU ID in the tp register
+Executes mret instruction to:
+Switch to supervisor mode
+Jump to main()
+4. Kernel Initialization in Supervisor Mode
+From kernel/main.c:
+
+First CPU (CPU 0) initializes the system:
+consoleinit();     // Console device
+printfinit();      // Printing system
+kinit();           // Physical page allocator
+kvminit();         // Create kernel page table
+kvminithart();     // Enable paging
+procinit();        // Process table
+trapinit();        // Trap vectors
+trapinithart();    // Install kernel trap vector
+plicinit();        // Set up interrupt controller
+plicinithart();    // Configure device interrupts
+binit();           // Buffer cache
+iinit();           // Inode table
+fileinit();        // File table
+virtio_disk_init(); // Emulated hard disk
+userinit();        // First user process
+kvminit() creates the kernel page table by calling kvmmake() which maps:
+Hardware registers for I/O
+Kernel code and data
+Trampoline page for trap handling
+Other CPUs wait for CPU 0 to finish, then perform their core-specific initialization
+All CPUs enter the scheduler loop with scheduler()
+5. First User Process Creation
+From kernel/proc.c:
+
+userinit() creates the first user process:
+p = allocproc();           // Allocate process structure
+initproc = p;
+// Load initcode binary into memory
+uvmfirst(p->pagetable, initcode, sizeof(initcode));
+p->sz = PGSIZE;
+// Set up trapframe for user mode
+p->trapframe->epc = 0;     // User program counter
+p->trapframe->sp = PGSIZE; // User stack pointer
+p->state = RUNNABLE;       // Mark as ready to run
+The initcode binary is compiled from user/initcode.S
+6. First User Code Execution
+From user/initcode.S:
+
+The first user code executes in user space
+It makes an exec system call to replace itself with /init:
+la a0, init        # First argument: path ("/init")
+la a1, argv        # Second argument: argv
+li a7, SYS_exec    # System call number
+ecall              # Execute system call
+7. Init Process and Shell
+From user/init.c:
+
+/init sets up the console for standard I/O
+It forks and executes the shell (sh):
+pid = fork();
+if(pid == 0){
+  exec("sh", argv);  // Launch shell
+}
+The shell becomes the first interactive user process

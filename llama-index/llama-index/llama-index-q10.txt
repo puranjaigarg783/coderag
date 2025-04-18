@@ -1,0 +1,1 @@
+How does LlamaIndex connect to external data sources? For example, how can I load documents from various formats or platforms?

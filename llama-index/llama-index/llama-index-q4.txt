@@ -1,0 +1,1 @@
+What happens under the hood when you query a VectorStoreIndex in LlamaIndex?

@@ -1,0 +1,445 @@
+[
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/list/retrievers.py",
+    "filename": "retrievers.py",
+    "relpath": "indices/list/retrievers.py",
+    "start_line": 1,
+    "end_line": 224,
+    "length": 224,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "class SummaryIndexEmbeddingRetriever(BaseRetriever):\n    \"\"\"Embedding based retriever for SummaryIndex.\n\n    Generates embeddings in a lazy fashion for all\n    nodes that are traversed.\n\n    Args:\n        index (SummaryIndex): The index to retrieve from.\n        similarity_top_k (Optional[int]): The number of top nodes to return.\n\n    \"\"\"\n\n    def __init__(\n        self,\n        index: SummaryIndex,\n        embed_model: Optional[BaseEmbedding] = None,\n        similarity_top_k: Optional[int] = 1,\n        callback_manager: Optional[CallbackManager] = None,\n        object_map: Optional[dict] = None,\n        verbose: bool = False,\n        **kwargs: Any,\n    ) -> None:\n        self._index = index\n        self._similarity_top_k = similarity_top_k\n        self._embed_model = embed_model or Settings.embed_model\n\n        super().__init__(\n            callback_manager=callback_manager, object_map=object_map, verbose=verbose\n        )\n\n    def _retrieve(\n        self,\n        query_bundle: QueryBundle,\n    ) -> List[NodeWithScore]:\n        \"\"\"Retrieve nodes.\"\"\"\n        node_ids = self._index.index_struct.nodes\n        # top k nodes\n        nodes = self._index.docstore.get_nodes(node_ids)\n        query_embedding, node_embeddings = self._get_embeddings(query_bundle, nodes)\n\n        top_similarities, top_idxs = get_top_k_embeddings(\n            query_embedding,\n            node_embeddings,\n            similarity_top_k=self._similarity_top_k,\n            embedding_ids=list(range(len(nodes))),\n        )\n\n        top_k_nodes = [nodes[i] for i in top_idxs]\n\n        node_with_scores = []\n        for node, similarity in zip(top_k_nodes, top_similarities):\n            node_with_scores.append(NodeWithScore(node=node, score=similarity))\n\n        logger.debug(f\"> Top {len(top_idxs)} nodes:\\n\")\n        nl = \"\\n\"\n        logger.debug(f\"{nl.join([n.get_content() for n in top_k_nodes])}\")\n        return node_with_scores\n\n    def _get_embeddings(\n        self, query_bundle: QueryBundle, nodes: List[BaseNode]\n    ) -> Tuple[List[float], List[List[float]]]:\n        \"\"\"Get top nodes by similarity to the query.\"\"\"\n        if query_bundle.embedding is None:\n            query_bundle.embedding = self._embed_model.get_agg_embedding_from_queries(\n                query_bundle.embedding_strs\n            )\n\n        node_embeddings: List[List[float]] = []\n        nodes_embedded = 0\n        for node in nodes:\n            if node.embedding is None:\n                nodes_embedded += 1\n                node.embedding = self._embed_model.get_text_embedding(\n                    node.get_content(metadata_mode=MetadataMode.EMBED)\n                )\n\n            node_embeddings.append(node.embedding)\n        return query_bundle.embedding, node_embeddings",
+    "chunk_function_names": [
+      "__init__",
+      "_retrieve",
+      "__init__",
+      "_retrieve",
+      "_get_embeddings",
+      "__init__",
+      "_retrieve"
+    ],
+    "chunk_class_names": [
+      "SummaryIndexRetriever",
+      "SummaryIndexEmbeddingRetriever",
+      "SummaryIndexLLMRetriever"
+    ],
+    "document_function_names": [
+      "__init__",
+      "_retrieve",
+      "__init__",
+      "_retrieve",
+      "_get_embeddings",
+      "__init__",
+      "_retrieve"
+    ],
+    "document_class_names": [
+      "SummaryIndexRetriever",
+      "SummaryIndexEmbeddingRetriever",
+      "SummaryIndexLLMRetriever"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/embeddings/utils.py",
+    "filename": "utils.py",
+    "relpath": "embeddings/utils.py",
+    "start_line": 1,
+    "end_line": 140,
+    "length": 140,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "def resolve_embed_model(\n    embed_model: Optional[EmbedType] = None,\n    callback_manager: Optional[CallbackManager] = None,\n) -> BaseEmbedding:\n    \"\"\"Resolve embed model.\"\"\"\n    from llama_index.core.settings import Settings\n\n    try:\n        from llama_index.core.bridge.langchain import Embeddings as LCEmbeddings\n    except ImportError:\n        LCEmbeddings = None  # type: ignore\n\n    if embed_model == \"default\":\n        if os.getenv(\"IS_TESTING\"):\n            embed_model = MockEmbedding(embed_dim=8)\n            embed_model.callback_manager = callback_manager or Settings.callback_manager\n            return embed_model\n\n        try:\n            from llama_index.embeddings.openai import (\n                OpenAIEmbedding,\n            )  # pants: no-infer-dep\n\n            from llama_index.embeddings.openai.utils import (\n                validate_openai_api_key,\n            )  # pants: no-infer-dep\n\n            embed_model = OpenAIEmbedding()\n            validate_openai_api_key(embed_model.api_key)  # type: ignore\n        except ImportError:\n            raise ImportError(\n                \"`llama-index-embeddings-openai` package not found, \"\n                \"please run `pip install llama-index-embeddings-openai`\"\n            )\n        except ValueError as e:\n            raise ValueError(\n                \"\\n******\\n\"\n                \"Could not load OpenAI embedding model. \"\n                \"If you intended to use OpenAI, please check your OPENAI_API_KEY.\\n\"\n                \"Original error:\\n\"\n                f\"{e!s}\"\n                \"\\nConsider using embed_model='local'.\\n\"\n                \"Visit our documentation for more embedding options: \"\n                \"https://docs.llamaindex.ai/en/stable/module_guides/models/\"\n                \"embeddings.html#modules\"\n                \"\\n******\"\n            )\n    # for image multi-modal embeddings\n    elif isinstance(embed_model, str) and embed_model.startswith(\"clip\"):\n        try:\n            from llama_index.embeddings.clip import ClipEmbedding  # pants: no-infer-dep\n\n            clip_model_name = (\n                embed_model.split(\":\")[1] if \":\" in embed_model else \"ViT-B/32\"\n            )\n            embed_model = ClipEmbedding(model_name=clip_model_name)\n        except ImportError as e:\n            raise ImportError(\n                \"`llama-index-embeddings-clip` package not found, \"\n                \"please run `pip install llama-index-embeddings-clip` and `pip install git+https://github.com/openai/CLIP.git`\"\n            )\n\n    if isinstance(embed_model, str):\n        try:\n            from llama_index.embeddings.huggingface import (\n                HuggingFaceEmbedding,\n            )  # pants: no-infer-dep\n\n            splits = embed_model.split(\":\", 1)\n            is_local = splits[0]\n            model_name = splits[1] if len(splits) > 1 else None\n            if is_local != \"local\":\n                raise ValueError(\n                    \"embed_model must start with str 'local' or of type BaseEmbedding\"\n                )\n\n            cache_folder = os.path.join(get_cache_dir(), \"models\")\n            os.makedirs(cache_folder, exist_ok=True)\n\n            embed_model = HuggingFaceEmbedding(\n                model_name=model_name, cache_folder=cache_folder\n            )\n        except ImportError:\n            raise ImportError(\n                \"`llama-index-embeddings-huggingface` package not found, \"\n                \"please run `pip install llama-index-embeddings-huggingface`\"\n            )\n\n    if LCEmbeddings is not None and isinstance(embed_model, LCEmbeddings):\n        try:\n            from llama_index.embeddings.langchain import (\n                LangchainEmbedding,\n            )  # pants: no-infer-dep\n\n            embed_model = LangchainEmbedding(embed_model)\n        except ImportError as e:\n            raise ImportError(\n                \"`llama-index-embeddings-langchain` package not found, \"\n                \"please run `pip install llama-index-embeddings-langchain`\"\n            )\n\n    if embed_model is None:\n        print(\"Embeddings have been explicitly disabled. Using MockEmbedding.\")\n        embed_model = MockEmbedding(embed_dim=1)\n\n    assert isinstance(embed_model, BaseEmbedding)\n\n    embed_model.callback_manager = callback_manager or Settings.callback_manager\n\n    return embed_model",
+    "chunk_function_names": [
+      "save_embedding",
+      "load_embedding",
+      "resolve_embed_model"
+    ],
+    "document_function_names": [
+      "save_embedding",
+      "load_embedding",
+      "resolve_embed_model"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/tree/select_leaf_embedding_retriever.py",
+    "filename": "select_leaf_embedding_retriever.py",
+    "relpath": "indices/tree/select_leaf_embedding_retriever.py",
+    "start_line": 1,
+    "end_line": 157,
+    "length": 157,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "class TreeSelectLeafEmbeddingRetriever(TreeSelectLeafRetriever):\n    \"\"\"Tree select leaf embedding retriever.\n\n    This class traverses the index graph using the embedding similarity between the\n    query and the node text.\n\n    Args:\n        embed_model (Optional[BaseEmbedding]): Embedding model to use for\n            embedding similarity.\n\n    \"\"\"\n\n    def __init__(\n        self,\n        index: TreeIndex,\n        embed_model: Optional[BaseEmbedding] = None,\n        query_template: Optional[BasePromptTemplate] = None,\n        text_qa_template: Optional[BasePromptTemplate] = None,\n        refine_template: Optional[BasePromptTemplate] = None,\n        query_template_multiple: Optional[BasePromptTemplate] = None,\n        child_branch_factor: int = 1,\n        verbose: bool = False,\n        callback_manager: Optional[CallbackManager] = None,\n        object_map: Optional[dict] = None,\n        **kwargs: Any,\n    ):\n        super().__init__(\n            index,\n            query_template=query_template,\n            text_qa_template=text_qa_template,\n            refine_template=refine_template,\n            query_template_multiple=query_template_multiple,\n            child_branch_factor=child_branch_factor,\n            verbose=verbose,\n            callback_manager=callback_manager,\n            object_map=object_map,\n            **kwargs,\n        )\n        self._embed_model = embed_model or Settings.embed_model\n\n    def _get_query_text_embedding_similarities(\n        self, query_bundle: QueryBundle, nodes: List[BaseNode]\n    ) -> List[float]:\n        \"\"\"\n        Get query text embedding similarity.\n\n        Cache the query embedding and the node text embedding.\n\n        \"\"\"\n        if query_bundle.embedding is None:\n            query_bundle.embedding = self._embed_model.get_agg_embedding_from_queries(\n                query_bundle.embedding_strs\n            )\n        similarities = []\n        for node in nodes:\n            if node.embedding is None:\n                node.embedding = self._embed_model.get_text_embedding(\n                    node.get_content(metadata_mode=MetadataMode.EMBED)\n                )\n\n            similarity = self._embed_model.similarity(\n                query_bundle.embedding, node.embedding\n            )\n            similarities.append(similarity)\n        return similarities\n\n    def _get_most_similar_nodes(\n        self, nodes: List[BaseNode], query_bundle: QueryBundle\n    ) -> Tuple[List[BaseNode], List[int]]:\n        \"\"\"Get the node with the highest similarity to the query.\"\"\"\n        similarities = self._get_query_text_embedding_similarities(query_bundle, nodes)\n\n        selected_nodes: List[BaseNode] = []\n        selected_indices: List[int] = []\n        for node, _ in sorted(\n            zip(nodes, similarities), key=lambda x: x[1], reverse=True\n        ):\n            if len(selected_nodes) < self.child_branch_factor:\n                selected_nodes.append(node)\n                selected_indices.append(nodes.index(node))\n            else:\n                break\n\n        return selected_nodes, selected_indices",
+    "chunk_function_names": [
+      "__init__",
+      "_query_level",
+      "_get_query_text_embedding_similarities",
+      "_get_most_similar_nodes",
+      "_select_nodes"
+    ],
+    "chunk_class_names": [
+      "TreeSelectLeafEmbeddingRetriever",
+      "traverses"
+    ],
+    "document_function_names": [
+      "__init__",
+      "_query_level",
+      "_get_query_text_embedding_similarities",
+      "_get_most_similar_nodes",
+      "_select_nodes"
+    ],
+    "document_class_names": [
+      "TreeSelectLeafEmbeddingRetriever",
+      "traverses"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/utils.py",
+    "filename": "utils.py",
+    "relpath": "indices/utils.py",
+    "start_line": 1,
+    "end_line": 273,
+    "length": 273,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "from llama_index.core.base.embeddings.base import BaseEmbedding\nfrom llama_index.core.embeddings.multi_modal_base import MultiModalEmbedding\nfrom llama_index.core.schema import BaseNode, ImageNode, MetadataMode\nfrom llama_index.core.utils import globals_helper, truncate_text\nfrom llama_index.core.vector_stores.types import VectorStoreQueryResult\nfrom typing import Dict, List, Optional, Sequence, Set, Tuple\n\ndef embed_nodes(\n    nodes: Sequence[BaseNode], embed_model: BaseEmbedding, show_progress: bool = False\n) -> Dict[str, List[float]]:\n    \"\"\"Get embeddings of the given nodes, run embedding model if necessary.\n\n    Args:\n        nodes (Sequence[BaseNode]): The nodes to embed.\n        embed_model (BaseEmbedding): The embedding model to use.\n        show_progress (bool): Whether to show progress bar.\n\n    Returns:\n        Dict[str, List[float]]: A map from node id to embedding.\n    \"\"\"\n    id_to_embed_map: Dict[str, List[float]] = {}\n\n    texts_to_embed = []\n    ids_to_embed = []\n    for node in nodes:\n        if node.embedding is None:\n            ids_to_embed.append(node.node_id)\n            texts_to_embed.append(node.get_content(metadata_mode=MetadataMode.EMBED))\n        else:\n            id_to_embed_map[node.node_id] = node.embedding\n\n    new_embeddings = embed_model.get_text_embedding_batch(\n        texts_to_embed, show_progress=show_progress\n    )\n\n    for new_id, text_embedding in zip(ids_to_embed, new_embeddings):\n        id_to_embed_map[new_id] = text_embedding\n\n    return id_to_embed_map\n\ndef embed_image_nodes(\n    nodes: Sequence[ImageNode],\n    embed_model: MultiModalEmbedding,\n    show_progress: bool = False,\n) -> Dict[str, List[float]]:\n    \"\"\"Get image embeddings of the given nodes, run image embedding model if necessary.\n\n    Args:\n        nodes (Sequence[ImageNode]): The nodes to embed.\n        embed_model (MultiModalEmbedding): The embedding model to use.\n        show_progress (bool): Whether to show progress bar.\n\n    Returns:\n        Dict[str, List[float]]: A map from node id to embedding.\n    \"\"\"\n    id_to_embed_map: Dict[str, List[float]] = {}\n\n    images_to_embed = []\n    ids_to_embed = []\n    for node in nodes:\n        if node.embedding is None:\n            ids_to_embed.append(node.node_id)\n            images_to_embed.append(node.resolve_image())\n        else:\n            id_to_embed_map[node.node_id] = node.embedding\n\n    new_embeddings = embed_model.get_image_embedding_batch(\n        images_to_embed, show_progress=show_progress\n    )\n\n    for new_id, img_embedding in zip(ids_to_embed, new_embeddings):\n        id_to_embed_map[new_id] = img_embedding\n\n    return id_to_embed_map",
+    "chunk_function_names": [
+      "get_sorted_node_list",
+      "extract_numbers_given_response",
+      "expand_tokens_with_subtokens",
+      "log_vector_store_query_result",
+      "default_format_node_batch_fn",
+      "default_parse_choice_select_answer_fn",
+      "embed_nodes",
+      "embed_image_nodes",
+      "async_embed_nodes",
+      "async_embed_image_nodes"
+    ],
+    "document_function_names": [
+      "get_sorted_node_list",
+      "extract_numbers_given_response",
+      "expand_tokens_with_subtokens",
+      "log_vector_store_query_result",
+      "default_format_node_batch_fn",
+      "default_parse_choice_select_answer_fn",
+      "embed_nodes",
+      "embed_image_nodes",
+      "async_embed_nodes",
+      "async_embed_image_nodes"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/list/base.py",
+    "filename": "base.py",
+    "relpath": "indices/list/base.py",
+    "start_line": 1,
+    "end_line": 152,
+    "length": 152,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "The code chunk remains the same as it is all relevant to the query about where LlamaIndex defines which embedding model to use for text and how it is used.",
+    "chunk_function_names": [
+      "__init__",
+      "as_retriever",
+      "_build_index_from_nodes",
+      "_insert",
+      "_delete_node",
+      "ref_doc_info"
+    ],
+    "chunk_class_names": [
+      "ListRetrieverMode",
+      "SummaryIndex"
+    ],
+    "document_function_names": [
+      "__init__",
+      "as_retriever",
+      "_build_index_from_nodes",
+      "_insert",
+      "_delete_node",
+      "ref_doc_info"
+    ],
+    "document_class_names": [
+      "ListRetrieverMode",
+      "SummaryIndex"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/knowledge_graph/retrievers.py",
+    "filename": "retrievers.py",
+    "relpath": "indices/knowledge_graph/retrievers.py",
+    "start_line": 1,
+    "end_line": 398,
+    "length": 398,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "class KGTableRetriever(BaseRetriever):\n    \"\"\"KG Table Retriever.\n\n    Args:\n        query_keyword_extract_template (Optional[QueryKGExtractPrompt]): A Query\n            KG Extraction\n            Prompt (see :ref:`Prompt-Templates`).\n        retriever_mode (KGRetrieverMode): Specifies whether to use keywords,\n            embeddings, or both to find relevant triplets. Should be one of \"keyword\",\n            \"embedding\", or \"hybrid\".\n        similarity_top_k (int): The number of top embeddings to use\n            (if embeddings are used).\n        graph_store_query_depth (int): The depth of the graph store query.\n        use_global_node_triplets (bool): Whether to get more keywords(entities) from\n            text chunks matched by keywords. This helps introduce more global knowledge.\n            While it's more expensive, thus to be turned off by default.\n        max_knowledge_sequence (int): The maximum number of knowledge sequence to\n            include in the response. By default, it's 30.\n    \"\"\"\n\n    def __init__(\n        self,\n        index: KnowledgeGraphIndex,\n        llm: Optional[LLM] = None,\n        embed_model: Optional[BaseEmbedding] = None,\n        query_keyword_extract_template: Optional[BasePromptTemplate] = None,\n        retriever_mode: Optional[KGRetrieverMode] = KGRetrieverMode.KEYWORD,\n        similarity_top_k: int = 2,\n        graph_store_query_depth: int = 2,\n        use_global_node_triplets: bool = False,\n        max_knowledge_sequence: int = REL_TEXT_LIMIT,\n        callback_manager: Optional[CallbackManager] = None,\n        object_map: Optional[dict] = None,\n        verbose: bool = False,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Initialize params.\"\"\"\n        assert isinstance(index, KnowledgeGraphIndex)\n        self._index = index\n        self._index_struct = self._index.index_struct\n        self._docstore = self._index.docstore\n\n        self.query_keyword_extract_template = query_keyword_extract_template or DQKET\n        self.similarity_top_k = similarity_top_k\n        self._retriever_mode = (\n            KGRetrieverMode(retriever_mode)\n            if retriever_mode\n            else KGRetrieverMode.KEYWORD\n        )\n\n        self._llm = llm or Settings.llm\n        self._embed_model = embed_model or Settings.embed_model\n        self._graph_store = index.graph_store\n        self.graph_store_query_depth = graph_store_query_depth\n        self.use_global_node_triplets = use_global_node_triplets\n        self.max_knowledge_sequence = max_knowledge_sequence\n        self._verbose = kwargs.get(\"verbose\", False)\n        refresh_schema = kwargs.get(\"refresh_schema\", False)\n        try:\n            self._graph_schema = self._graph_store.get_schema(refresh=refresh_schema)\n        except NotImplementedError:\n            self._graph_schema = \"\"\n        except Exception as e:\n            logger.warning(f\"Failed to get graph schema: {e}\")\n            self._graph_schema = \"\"\n        super().__init__(\n            callback_manager=callback_manager or Settings.callback_manager,\n            object_map=object_map,\n            verbose=verbose,\n        )\n\n    def _retrieve(\n        self,\n        query_bundle: QueryBundle,\n    ) -> List[NodeWithScore]:\n        \"\"\"Get nodes for response.\"\"\"\n        node_visited = set()\n        keywords = self._get_keywords(query_bundle.query_str)\n        if self._verbose:\n            print_text(f\"Extracted keywords: {keywords}\\n\", color=\"green\")\n        rel_texts = []\n        cur_rel_map = {}\n        chunk_indices_count: Dict[str, int] = defaultdict(int)\n        if self._retriever_mode != KGRetrieverMode.EMBEDDING:\n            for keyword in keywords:\n                subjs = {keyword}\n                node_ids = self._index_struct.search_node_by_keyword(keyword)\n                for node_id in node_ids[:GLOBAL_EXPLORE_NODE_LIMIT]:\n                    if node_id in node_visited:\n                        continue\n\n                    if self._include_text:\n                        chunk_indices_count[node_id] += 1\n\n                    node_visited.add(node_id)\n                    if self.use_global_node_triplets:\n                        extended_subjs = self._get_keywords(\n                            self._docstore.get_node(node_id).get_content(\n                                metadata_mode=MetadataMode.LLM\n                            )\n                        )\n                        subjs.update(extended_subjs)\n\n                rel_map = self._graph_store.get_rel_map(\n                    list(subjs), self.graph_store_query_depth\n                )\n\n                logger.debug(f\"rel_map: {rel_map}\")\n\n                if not rel_map:\n                    continue\n                rel_texts.extend(\n                    [\n                        str(rel_obj)\n                        for rel_objs in rel_map.values()\n                        for rel_obj in rel_objs\n                    ]\n                )\n                cur_rel_map.update(rel_map)\n\n        if (\n            self._retriever_mode != KGRetrieverMode.KEYWORD\n            and len(self._index_struct.embedding_dict) > 0\n        ):\n            query_embedding = self._embed_model.get_text_embedding(\n                query_bundle.query_str\n            )\n            all_rel_texts = list(self._index_struct.embedding_dict.keys())\n\n            rel_text_embeddings = [\n                self._index_struct.embedding_dict[_id] for _id in all_rel_texts\n            ]\n            similarities, top_rel_texts = get_top_k_embeddings(\n                query_embedding,\n                rel_text_embeddings,\n                similarity_top_k=self.similarity_top_k,\n                embedding_ids=all_rel_texts,\n            )\n            logger.debug(\n                f\"Found the following rel_texts+query similarites: {similarities!s}\"\n            )\n            logger.debug(f\"Found the following top_k rel_texts: {rel_texts!s}\")\n            rel_texts.extend(top_rel_texts)\n\n        elif len(self._index_struct.embedding_dict) == 0:\n            logger.warning(\n                \"Index was not constructed with embeddings, skipping embedding usage...\"\n            )\n\n        if self._retriever_mode == KGRetrieverMode.HYBRID:\n            rel_texts = list(set(rel_texts))\n\n            rel_texts.sort(key=len, reverse=True)\n            for i in range(len(rel_texts)):\n                for j in range(i + 1, len(rel_texts)):\n                    if rel_texts[j] in rel_texts[i]:\n                        rel_texts[j] = \"\"\n            rel_texts = [rel_text for rel_text in rel_texts if rel_text != \"\"]\n\n            rel_texts = rel_texts[: self.max_knowledge_sequence]\n\n        if self._include_text:\n            keywords = self._extract_rel_text_keywords(rel_texts)\n            nested_node_ids = [\n                self._index_struct.search_node_by_keyword(keyword)\n                for keyword in keywords\n            ]\n            node_ids = [_id for ids in nested_node_ids for _id in ids]\n            for node_id in node_ids:\n                chunk_indices_count[node_id] += 1\n\n        sorted_chunk_indices = sorted(\n            chunk_indices_count.keys(),\n            key=lambda x: chunk_indices_count[x],\n            reverse=True,\n        )\n        sorted_chunk_indices = sorted_chunk_indices[: self.num_chunks_per_query]\n        sorted_nodes = self._docstore.get_nodes(sorted_chunk_indices)\n\n        sorted_nodes_with_scores = []\n        for chunk_idx, node in zip(sorted_chunk_indices, sorted_nodes):\n            sorted_nodes_with_scores.append(\n                NodeWithScore(node=node, score=DEFAULT_NODE_SCORE)\n            )\n            logger.info(\n                f\"> Querying with idx: {chunk_idx}: \"\n                f\"{truncate_text(node.get_content(), 80)}\"\n            )\n\n        if not rel_texts:\n            logger.info(\"> No relationships found, returning nodes found by keywords.\")\n            if len(sorted_nodes_with_scores) == 0:\n                logger.info(\"> No nodes found by keywords, returning empty response.\")\n                return [\n                    NodeWithScore(\n                        node=TextNode(text=\"No relationships found.\"), score=1.0\n                    )\n                ]\n            return sorted_nodes_with_scores\n\n        rel_initial_text = (\n            f\"The following are knowledge sequence in max depth\"\n            f\" {self.graph_store_query_depth} \"\n            f\"in the form of directed graph like:\\n\"\n            f\"`subject -[predicate]->, object, <-[predicate_next_hop]-,\"\n            f\" object_next_hop ...`\"\n        )\n        rel_info = [rel_initial_text, *rel_texts]\n        rel_node_info = {\n            \"kg_rel_texts\": rel_texts,\n            \"kg_rel_map\": cur_rel_map,\n        }\n        if self._graph_schema != \"\":\n            rel_node_info[\"kg_schema\"] = {\"schema\": self._graph_schema}\n        rel_info_text = \"\\n\".join(\n            [\n                str(item)\n                for sublist in rel_info\n                for item in (sublist if isinstance(sublist, list) else [sublist])\n            ]\n        )\n        if self._verbose:\n            print_text(f\"KG context:\\n{rel_info_text}\\n\", color=\"blue\")\n        rel_text_node = TextNode(\n            text=rel_info_text,\n            metadata=rel_node_info,\n            excluded_embed_metadata_keys=[\"kg_rel_map\", \"kg_rel_texts\"],\n            excluded_llm_metadata_keys=[\"kg_rel_map\", \"kg_rel_texts\"],\n        )\n        sorted_nodes_with_scores.append(\n            NodeWithScore(node=rel_text_node, score=DEFAULT_NODE_SCORE)\n        )\n\n        return sorted_nodes_with_scores\n\n    def _get_metadata_for_response(\n        self, nodes: List[BaseNode]\n    ) -> Optional[Dict[str, Any]]:\n        \"\"\"Get metadata for response.\"\"\"\n        for node in nodes:\n            if node.metadata is None or \"kg_rel_map\" not in node.metadata:\n                continue\n            return node.metadata\n        raise ValueError(\"kg_rel_map must be found in at least one Node.\")",
+    "chunk_function_names": [
+      "__init__",
+      "_get_keywords",
+      "_extract_rel_text_keywords",
+      "_retrieve",
+      "_get_metadata_for_response"
+    ],
+    "chunk_class_names": [
+      "KGRetrieverMode",
+      "KGTableRetriever"
+    ],
+    "document_function_names": [
+      "__init__",
+      "_get_keywords",
+      "_extract_rel_text_keywords",
+      "_retrieve",
+      "_get_metadata_for_response",
+      "__init__",
+      "_process_entities",
+      "_aprocess_entities",
+      "_get_entities",
+      "_aget_entities",
+      "_expand_synonyms",
+      "_aexpand_synonyms",
+      "_get_knowledge_sequence",
+      "_aget_knowledge_sequence",
+      "_build_nodes",
+      "_retrieve_keyword",
+      "_aretrieve_keyword",
+      "_retrieve_embedding",
+      "_aretrieve_embedding",
+      "_retrieve",
+      "_aretrieve"
+    ],
+    "document_class_names": [
+      "KGRetrieverMode",
+      "KGTableRetriever",
+      "KnowledgeGraphRAGRetriever"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/settings.py",
+    "filename": "settings.py",
+    "relpath": "settings.py",
+    "start_line": 1,
+    "end_line": 248,
+    "length": 248,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "# ---- Embedding ----\n\n    @property\n    def embed_model(self) -> BaseEmbedding:\n        \"\"\"Get the embedding model.\"\"\"\n        if self._embed_model is None:\n            self._embed_model = resolve_embed_model(\"default\")\n\n        if self._callback_manager is not None:\n            self._embed_model.callback_manager = self._callback_manager\n\n        return self._embed_model\n\n    @embed_model.setter\n    def embed_model(self, embed_model: EmbedType) -> None:\n        \"\"\"Set the embedding model.\"\"\"\n        self._embed_model = resolve_embed_model(embed_model)",
+    "chunk_function_names": [
+      "llm",
+      "llm",
+      "pydantic_program_mode",
+      "pydantic_program_mode",
+      "embed_model",
+      "embed_model",
+      "global_handler",
+      "global_handler",
+      "callback_manager",
+      "callback_manager",
+      "tokenizer",
+      "tokenizer",
+      "node_parser",
+      "node_parser",
+      "chunk_size",
+      "chunk_size",
+      "chunk_overlap",
+      "chunk_overlap",
+      "text_splitter",
+      "text_splitter",
+      "prompt_helper",
+      "prompt_helper",
+      "num_output",
+      "num_output",
+      "context_window",
+      "context_window",
+      "transformations",
+      "transformations"
+    ],
+    "chunk_class_names": [
+      "from",
+      "class"
+    ],
+    "document_function_names": [
+      "llm",
+      "llm",
+      "pydantic_program_mode",
+      "pydantic_program_mode",
+      "embed_model",
+      "embed_model",
+      "global_handler",
+      "global_handler",
+      "callback_manager",
+      "callback_manager",
+      "tokenizer",
+      "tokenizer",
+      "node_parser",
+      "node_parser",
+      "chunk_size",
+      "chunk_size",
+      "chunk_overlap",
+      "chunk_overlap",
+      "text_splitter",
+      "text_splitter",
+      "prompt_helper",
+      "prompt_helper",
+      "num_output",
+      "num_output",
+      "context_window",
+      "context_window",
+      "transformations",
+      "transformations"
+    ],
+    "document_class_names": [
+      "from",
+      "class"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/base/embeddings/base.py",
+    "filename": "base.py",
+    "relpath": "base/embeddings/base.py",
+    "start_line": 1,
+    "end_line": 464,
+    "length": 464,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "class BaseEmbedding(TransformComponent, DispatcherSpanMixin):\n    \"\"\"Base class for embeddings.\"\"\"\n\n    model_config = ConfigDict(\n        protected_namespaces=(\"pydantic_model_\",), arbitrary_types_allowed=True\n    )\n    model_name: str = Field(\n        default=\"unknown\", description=\"The name of the embedding model.\"\n    )\n    embed_batch_size: int = Field(\n        default=DEFAULT_EMBED_BATCH_SIZE,\n        description=\"The batch size for embedding calls.\",\n        gt=0,\n        le=2048,\n    )\n    callback_manager: CallbackManager = Field(\n        default_factory=lambda: CallbackManager([]), exclude=True\n    )\n    num_workers: Optional[int] = Field(\n        default=None,\n        description=\"The number of workers to use for async embedding calls.\",\n    )\n\n    @field_validator(\"callback_manager\")\n    @classmethod\n    def check_callback_manager(cls, v: CallbackManager) -> CallbackManager:\n        if v is None:\n            return CallbackManager([])\n        return v\n\n    @abstractmethod\n    def _get_query_embedding(self, query: str) -> Embedding:\n        \"\"\"\n        Embed the input query synchronously.\n\n        Subclasses should implement this method. Reference get_query_embedding's\n        docstring for more information.\n        \"\"\"\n\n    @abstractmethod\n    async def _aget_query_embedding(self, query: str) -> Embedding:\n        \"\"\"\n        Embed the input query asynchronously.\n\n        Subclasses should implement this method. Reference get_query_embedding's\n        docstring for more information.\n        \"\"\"\n\n    @dispatcher.span\n    def get_query_embedding(self, query: str) -> Embedding:\n        \"\"\"\n        Embed the input query.\n\n        When embedding a query, depending on the model, a special instruction\n        can be prepended to the raw query string. For example, \"Represent the\n        question for retrieving supporting documents: \". If you're curious,\n        other examples of predefined instructions can be found in\n        embeddings/huggingface_utils.py.\n        \"\"\"\n        model_dict = self.to_dict()\n        model_dict.pop(\"api_key\", None)\n        dispatcher.event(\n            EmbeddingStartEvent(\n                model_dict=model_dict,\n            )\n        )\n        with self.callback_manager.event(\n            CBEventType.EMBEDDING, payload={EventPayload.SERIALIZED: self.to_dict()}\n        ) as event:\n            query_embedding = self._get_query_embedding(query)\n\n            event.on_end(\n                payload={\n                    EventPayload.CHUNKS: [query],\n                    EventPayload.EMBEDDINGS: [query_embedding],\n                },\n            )\n        dispatcher.event(\n            EmbeddingEndEvent(\n                chunks=[query],\n                embeddings=[query_embedding],\n            )\n        )\n        return query_embedding\n\n    @dispatcher.span\n    async def aget_query_embedding(self, query: str) -> Embedding:\n        \"\"\"Get query embedding.\"\"\"\n        model_dict = self.to_dict()\n        model_dict.pop(\"api_key\", None)\n        dispatcher.event(\n            EmbeddingStartEvent(\n                model_dict=model_dict,\n            )\n        )\n        with self.callback_manager.event(\n            CBEventType.EMBEDDING, payload={EventPayload.SERIALIZED: self.to_dict()}\n        ) as event:\n            query_embedding = await self._aget_query_embedding(query)\n\n            event.on_end(\n                payload={\n                    EventPayload.CHUNKS: [query],\n                    EventPayload.EMBEDDINGS: [query_embedding],\n                },\n            )\n        dispatcher.event(\n            EmbeddingEndEvent(\n                chunks=[query],\n                embeddings=[query_embedding],\n            )\n        )\n        return query_embedding\n\n    def similarity(\n        self,\n        embedding1: Embedding,\n        embedding2: Embedding,\n        mode: SimilarityMode = SimilarityMode.DEFAULT,\n    ) -> float:\n        \"\"\"Get embedding similarity.\"\"\"\n        return similarity(embedding1=embedding1, embedding2=embedding2, mode=mode)",
+    "chunk_function_names": [
+      "mean_agg",
+      "similarity",
+      "check_callback_manager",
+      "_get_query_embedding",
+      "_aget_query_embedding",
+      "get_query_embedding",
+      "aget_query_embedding",
+      "get_agg_embedding_from_queries",
+      "aget_agg_embedding_from_queries",
+      "_get_text_embedding",
+      "_aget_text_embedding",
+      "_get_text_embeddings",
+      "_aget_text_embeddings",
+      "get_text_embedding",
+      "aget_text_embedding",
+      "get_text_embedding_batch",
+      "aget_text_embedding_batch",
+      "similarity",
+      "__call__",
+      "acall"
+    ],
+    "chunk_class_names": [
+      "SimilarityMode",
+      "BaseEmbedding",
+      "for"
+    ],
+    "document_function_names": [
+      "mean_agg",
+      "similarity",
+      "check_callback_manager",
+      "_get_query_embedding",
+      "_aget_query_embedding",
+      "get_query_embedding",
+      "aget_query_embedding",
+      "get_agg_embedding_from_queries",
+      "aget_agg_embedding_from_queries",
+      "_get_text_embedding",
+      "_aget_text_embedding",
+      "_get_text_embeddings",
+      "_aget_text_embeddings",
+      "get_text_embedding",
+      "aget_text_embedding",
+      "get_text_embedding_batch",
+      "aget_text_embedding_batch",
+      "similarity",
+      "__call__",
+      "acall"
+    ],
+    "document_class_names": [
+      "SimilarityMode",
+      "BaseEmbedding",
+      "for"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/document_summary/retrievers.py",
+    "filename": "retrievers.py",
+    "relpath": "indices/document_summary/retrievers.py",
+    "start_line": 1,
+    "end_line": 192,
+    "length": 192,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "class DocumentSummaryIndexEmbeddingRetriever(BaseRetriever):\n    \"\"\"Document Summary Index Embedding Retriever.\n\n    Args:\n        index (DocumentSummaryIndex): The index to retrieve from.\n        similarity_top_k (int): The number of summary nodes to retrieve.\n\n    \"\"\"\n\n    def __init__(\n        self,\n        index: DocumentSummaryIndex,\n        similarity_top_k: int = 1,\n        embed_model: Optional[BaseEmbedding] = None,\n        callback_manager: Optional[CallbackManager] = None,\n        object_map: Optional[dict] = None,\n        verbose: bool = False,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Init params.\"\"\"\n        self._index = index\n        self._vector_store = self._index.vector_store\n        self._embed_model = embed_model or Settings.embed_model\n        self._docstore = self._index.docstore\n        self._index_struct = self._index.index_struct\n        self._similarity_top_k = similarity_top_k\n        super().__init__(\n            callback_manager=callback_manager or Settings.callback_manager,\n            object_map=object_map,\n            verbose=verbose,\n        )\n\n    def _retrieve(\n        self,\n        query_bundle: QueryBundle,\n    ) -> List[NodeWithScore]:\n        \"\"\"Retrieve nodes.\"\"\"\n        if self._vector_store.is_embedding_query:\n            if query_bundle.embedding is None:\n                query_bundle.embedding = (\n                    self._embed_model.get_agg_embedding_from_queries(\n                        query_bundle.embedding_strs\n                    )\n                )\n\n        query = VectorStoreQuery(\n            query_embedding=query_bundle.embedding,\n            similarity_top_k=self._similarity_top_k,\n        )\n        query_result = self._vector_store.query(query)\n\n        top_k_summary_ids: List[str]\n        if query_result.ids is not None:\n            top_k_summary_ids = query_result.ids\n        elif query_result.nodes is not None:\n            top_k_summary_ids = [n.node_id for n in query_result.nodes]\n        else:\n            raise ValueError(\n                \"Vector store query result should return \"\n                \"at least one of nodes or ids.\"\n            )\n\n        results = []\n        for summary_id in top_k_summary_ids:\n            node_ids = self._index_struct.summary_id_to_node_ids[summary_id]\n            nodes = self._docstore.get_nodes(node_ids)\n            results.extend([NodeWithScore(node=n) for n in nodes])\n        return results",
+    "chunk_function_names": [
+      "__init__",
+      "_retrieve",
+      "__init__",
+      "_retrieve"
+    ],
+    "chunk_class_names": [
+      "DocumentSummaryIndexLLMRetriever",
+      "DocumentSummaryIndexEmbeddingRetriever"
+    ],
+    "document_function_names": [
+      "__init__",
+      "_retrieve",
+      "__init__",
+      "_retrieve"
+    ],
+    "document_class_names": [
+      "DocumentSummaryIndexLLMRetriever",
+      "DocumentSummaryIndexEmbeddingRetriever"
+    ]
+  },
+  {
+    "filepath": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/llama_index/llama-index-core/llama_index/core/indices/document_summary/base.py",
+    "filename": "base.py",
+    "relpath": "indices/document_summary/base.py",
+    "start_line": 1,
+    "end_line": 311,
+    "length": 311,
+    "language": "python",
+    "codebase": "llama_index",
+    "chunking_method": "ast",
+    "content": "```python\nclass DocumentSummaryIndex(BaseIndex[IndexDocumentSummary]):\n    \"\"\"Document Summary Index.\n\n    Args:\n        embed_model: Optional[BaseEmbedding] = None,\n        response_synthesizer: Optional[BaseSynthesizer] = None,\n        summary_query: str = DEFAULT_SUMMARY_QUERY,\n        embed_summaries: bool = True,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Initialize params.\"\"\"\n        self._embed_model = embed_model or Settings.embed_model\n        self._response_synthesizer = response_synthesizer or get_response_synthesizer(\n            llm=self._llm, response_mode=ResponseMode.TREE_SUMMARIZE\n        )\n        self._summary_query = summary_query\n        self._embed_summaries = embed_summaries\n\n    def as_retriever(\n        self,\n        retriever_mode: Union[str, _RetrieverMode] = _RetrieverMode.EMBEDDING,\n        **kwargs: Any,\n    ) -> BaseRetriever:\n        \"\"\"Get retriever.\n\n        Args:\n            retriever_mode (Union[str, DocumentSummaryRetrieverMode]): A retriever mode.\n                Defaults to DocumentSummaryRetrieverMode.EMBEDDING.\n\n        \"\"\"\n        from llama_index.core.indices.document_summary.retrievers import (\n            DocumentSummaryIndexEmbeddingRetriever,\n            DocumentSummaryIndexLLMRetriever,\n        )\n\n        LLMRetriever = DocumentSummaryIndexLLMRetriever\n        EmbeddingRetriever = DocumentSummaryIndexEmbeddingRetriever\n\n        if retriever_mode == _RetrieverMode.EMBEDDING:\n            if not self._embed_summaries:\n                raise ValueError(\n                    \"Cannot use embedding retriever if embed_summaries is False\"\n                )\n\n            return EmbeddingRetriever(\n                self,\n                object_map=self._object_map,\n                embed_model=self._embed_model,\n                **kwargs,\n            )\n        if retriever_mode == _RetrieverMode.LLM:\n            return LLMRetriever(\n                self, object_map=self._object_map, llm=self._llm, **kwargs\n            )\n        else:\n            raise ValueError(f\"Unknown retriever mode: {retriever_mode}\")\n\n    def _add_nodes_to_index(\n        self,\n        index_struct: IndexDocumentSummary,\n        nodes: Sequence[BaseNode],\n        show_progress: bool = False,\n    ) -> None:\n        \"\"\"Add nodes to index.\"\"\"\n        doc_id_to_nodes = defaultdict(list)\n        for node in nodes:\n            if node.ref_doc_id is None:\n                raise ValueError(\n                    \"ref_doc_id of node cannot be None when building a document \"\n                    \"summary index\"\n                )\n            doc_id_to_nodes[node.ref_doc_id].append(node)\n\n        summary_node_dict = {}\n        items = doc_id_to_nodes.items()\n        iterable_with_progress = get_tqdm_iterable(\n            items, show_progress, \"Summarizing documents\"\n        )\n\n        for doc_id, nodes in iterable_with_progress:\n            print(f\"current doc id: {doc_id}\")\n            nodes_with_scores = [NodeWithScore(node=n) for n in nodes]\n            # get the summary for each doc_id\n            summary_response = self._response_synthesizer.synthesize(\n                query=self._summary_query,\n                nodes=nodes_with_scores,\n            )\n            summary_response = cast(Response, summary_response)\n            docid_first_node = doc_id_to_nodes.get(doc_id, [TextNode()])[0]\n            summary_node_dict[doc_id] = TextNode(\n                text=summary_response.response,\n                relationships={\n                    NodeRelationship.SOURCE: RelatedNodeInfo(node_id=doc_id)\n                },\n                metadata=docid_first_node.metadata,\n                excluded_embed_metadata_keys=docid_first_node.excluded_embed_metadata_keys,\n                excluded_llm_metadata_keys=docid_first_node.excluded_llm_metadata_keys,\n            )\n            self.docstore.add_documents([summary_node_dict[doc_id]])\n            logger.info(\n                f\"> Generated summary for doc {doc_id}: \" f\"{summary_response.response}\"\n            )\n\n        for doc_id, nodes in doc_id_to_nodes.items():\n            index_struct.add_summary_and_nodes(summary_node_dict[doc_id], nodes)\n\n        if self._embed_summaries:\n            summary_nodes = list(summary_node_dict.values())\n            id_to_embed_map = embed_nodes(\n                summary_nodes, self._embed_model, show_progress=show_progress\n            )\n\n            summary_nodes_with_embedding = []\n            for node in summary_nodes:\n                node_with_embedding = node.model_copy()\n                node_with_embedding.embedding = id_to_embed_map[node.node_id]\n                summary_nodes_with_embedding.append(node_with_embedding)\n            self._vector_store.add(summary_nodes_with_embedding)\n\n    def _build_index_from_nodes(\n        self,\n        nodes: Sequence[BaseNode],\n        **build_kwargs: Any,\n    ) -> IndexDocumentSummary:\n        \"\"\"Build index from nodes.\"\"\"\n        # first get doc_id to nodes_dict, generate a summary for each doc_id,\n        # then build the index struct\n        index_struct = IndexDocumentSummary()\n        self._add_nodes_to_index(index_struct, nodes, self._show_progress)\n        return index_struct\n\n    def _insert(self, nodes: Sequence[BaseNode], **insert_kwargs: Any) -> None:\n        \"\"\"Insert a document.\"\"\"\n        self._add_nodes_to_index(self._index_struct, nodes)\n\n    def delete_ref_doc(\n        self, ref_doc_id: str, delete_from_docstore: bool = False, **delete_kwargs: Any\n    ) -> None:\n        \"\"\"Delete a document from the index.\n        All nodes in the index related to the document will be deleted.\n        \"\"\"\n        ref_doc_info = self.docstore.get_ref_doc_info(ref_doc_id)\n        if ref_doc_info is None:\n            logger.warning(f\"ref_doc_id {ref_doc_id} not found, nothing deleted.\")\n            return\n        self._index_struct.delete(ref_doc_id)\n        self._vector_store.delete(ref_doc_id)\n\n        if delete_from_docstore:\n            self.docstore.delete_ref_doc(ref_doc_id, raise_error=False)\n\n        self._storage_context.index_store.add_index_struct(self._index_struct)\n\n    @property\n    def ref_doc_info(self) -> Dict[str, RefDocInfo]:\n        \"\"\"Retrieve a dict mapping of ingested documents and their nodes+metadata.\"\"\"\n        ref_doc_ids = list(self._index_struct.doc_id_to_summary_id.keys())\n\n        all_ref_doc_info = {}\n        for ref_doc_id in ref_doc_ids:\n            ref_doc_info = self.docstore.get_ref_doc_info(ref_doc_id)\n            if not ref_doc_info:\n                continue\n\n            all_ref_doc_info[ref_doc_id] = ref_doc_info\n        return all_ref_doc_info\n```",
+    "chunk_function_names": [
+      "__init__",
+      "vector_store",
+      "as_retriever",
+      "get_document_summary",
+      "_add_nodes_to_index",
+      "_build_index_from_nodes",
+      "_insert",
+      "_delete_node",
+      "delete_nodes",
+      "delete_ref_doc",
+      "ref_doc_info"
+    ],
+    "chunk_class_names": [
+      "DocumentSummaryRetrieverMode",
+      "DocumentSummaryIndex"
+    ],
+    "document_function_names": [
+      "__init__",
+      "vector_store",
+      "as_retriever",
+      "get_document_summary",
+      "_add_nodes_to_index",
+      "_build_index_from_nodes",
+      "_insert",
+      "_delete_node",
+      "delete_nodes",
+      "delete_ref_doc",
+      "ref_doc_info"
+    ],
+    "document_class_names": [
+      "DocumentSummaryRetrieverMode",
+      "DocumentSummaryIndex"
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+The CPU scheduler loop in xv6-riscv is located in the `scheduler()` function in the `main.c` file. The `scheduler()` function is called at the end of the `main()` function after initializing various components of the xv6 kernel. 
+
+In the provided code chunk from `main.c`, the `scheduler()` function is called after initializing the kernel, process table, trap vectors, interrupt controller, buffer cache, inode table, file table, emulated hard disk, and the first user process. 
+
+The `scheduler()` function is responsible for selecting the next process to run on the CPU based on the scheduling algorithm implemented in xv6-riscv. This algorithm determines how CPU time is allocated among different processes in the system. By calling the `scheduler()` function, the xv6 kernel ensures that the CPU is always executing a process and switches between processes based on the scheduling policy defined in the kernel.
+
+Therefore, the `scheduler()` function plays a crucial role in managing the execution of processes on the CPU in the xv6-riscv operating system.

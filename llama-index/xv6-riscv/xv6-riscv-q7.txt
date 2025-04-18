@@ -1,0 +1,1 @@
+What mechanism does xv6 use to protect shared data in the kernel, and where is it implemented?

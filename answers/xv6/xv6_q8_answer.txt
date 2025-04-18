@@ -1,0 +1,15 @@
+The xv6 boot process on RISC-V involves several key steps:
+
+1. **Power-On**: When the RISC-V machine is powered on, the boot ROM loads the initial boot code at physical address 0x80000000. This code initializes the machine and sets up the environment for the kernel.
+
+2. **Kernel Initialization (main)**: The `main` function in `main.c` is the entry point for the kernel. It initializes various components such as console, printf, page allocator, process table, trap vectors, interrupt controller, buffer cache, inode table, file table, emulated hard disk, and the first user process. This function sets up the basic environment for the kernel to run.
+
+3. **Kernel Page Table Initialization (kvmmake, kvminit, kvminithart)**: The `kvmmake` function in `vm.c` creates a direct-map page table for the kernel, mapping various memory regions such as UART registers, virtio disk interface, PLIC, kernel text, kernel data, and the trampoline for trap entry/exit. The `kvminit` function initializes the kernel page table, and `kvminithart` switches the hardware page table register to the kernel's page table and enables paging.
+
+4. **Machine Mode Initialization (start)**: The `start` function in `start.c` is the entry point for the kernel in machine mode. It sets up the machine status register, exception program counter, interrupt delegation, physical memory protection, timer interrupts, and then switches to supervisor mode and jumps to the `main` function.
+
+5. **User Process Initialization (userinit)**: The `userinit` function in `proc.c` sets up the first user process. It allocates a user page, copies initial code and data into it, sets up the user program counter and stack pointer, assigns a name, sets the current working directory, and marks the process as runnable.
+
+6. **First Process Execution**: After the kernel is initialized and the first user process is set up, the scheduler will eventually switch to the first user process, allowing it to start executing.
+
+Overall, the boot process involves initializing the kernel, setting up the machine mode, initializing the kernel page table, and preparing the first user process for execution. Each step plays a crucial role in transitioning from power-on to the first user process running in xv6 on RISC-V architecture.

@@ -1,0 +1,74 @@
+[
+  {
+    "filepath": "llama-index-core/llama_index/core/query_engine/retriever_query_engine.py",
+    "filename": "retriever_query_engine.py",
+    "relpath": "llama-index-core/llama_index/core/query_engine/retriever_query_engine.py",
+    "start_line": 172,
+    "end_line": 185,
+    "length": 14,
+    "content": "    @dispatcher.span\n    def _query(self, query_bundle: QueryBundle) -> RESPONSE_TYPE:\n        \"\"\"Answer a query.\"\"\"\n        with self.callback_manager.event(\n            CBEventType.QUERY, payload={EventPayload.QUERY_STR: query_bundle.query_str}\n        ) as query_event:\n            nodes = self.retrieve(query_bundle)\n            response = self._response_synthesizer.synthesize(\n                query=query_bundle,\n                nodes=nodes,\n            )\n            query_event.on_end(payload={EventPayload.RESPONSE: response})\n\n        return response"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 91,
+    "end_line": 103,
+    "length": 13,
+    "content": "    @dispatcher.span\n    def _retrieve(\n        self,\n        query_bundle: QueryBundle,\n    ) -> List[NodeWithScore]:\n        if self._vector_store.is_embedding_query:\n            if query_bundle.embedding is None and len(query_bundle.embedding_strs) > 0:\n                query_bundle.embedding = (\n                    self._embed_model.get_agg_embedding_from_queries(\n                        query_bundle.embedding_strs\n                    )\n                )\n        return self._get_nodes_with_embeddings(query_bundle)"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 176,
+    "end_line": 181,
+    "length": 6,
+    "content": "    def _get_nodes_with_embeddings(\n        self, query_bundle_with_embeddings: QueryBundle\n    ) -> List[NodeWithScore]:\n        query = self._build_vector_store_query(query_bundle_with_embeddings)\n        query_result = self._vector_store.query(query, **self._kwargs)\n        return self._build_node_list_from_query_result(query_result)"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 118,
+    "end_line": 132,
+    "length": 15,
+    "content": "    def _build_vector_store_query(\n        self, query_bundle_with_embeddings: QueryBundle\n    ) -> VectorStoreQuery:\n        return VectorStoreQuery(\n            query_embedding=query_bundle_with_embeddings.embedding,\n            similarity_top_k=self._similarity_top_k,\n            node_ids=self._node_ids,\n            doc_ids=self._doc_ids,\n            query_str=query_bundle_with_embeddings.query_str,\n            mode=self._vector_store_query_mode,\n            alpha=self._alpha,\n            filters=self._filters,\n            sparse_top_k=self._sparse_top_k,\n            hybrid_top_k=self._hybrid_top_k,\n        )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 113,
+    "end_line": 125,
+    "length": 13,
+    "content": "    def as_retriever(self, **kwargs: Any) -> BaseRetriever:\n        # NOTE: lazy import\n        from llama_index.core.indices.vector_store.retrievers import (\n            VectorIndexRetriever,\n        )\n\n        return VectorIndexRetriever(\n            self,\n            node_ids=list(self.index_struct.nodes_dict.values()),\n            callback_manager=self._callback_manager,\n            object_map=self._object_map,\n            **kwargs,\n        )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/response_synthesizers/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/response_synthesizers/base.py",
+    "start_line": 198,
+    "end_line": 262,
+    "length": 65,
+    "content": "    @dispatcher.span\n    def synthesize(\n        self,\n        query: QueryTextType,\n        nodes: List[NodeWithScore],\n        additional_source_nodes: Optional[Sequence[NodeWithScore]] = None,\n        **response_kwargs: Any,\n    ) -> RESPONSE_TYPE:\n        dispatcher.event(\n            SynthesizeStartEvent(\n                query=query,\n            )\n        )\n\n        if len(nodes) == 0:\n            if self._streaming:\n                empty_response_stream = StreamingResponse(\n                    response_gen=empty_response_generator()\n                )\n                dispatcher.event(\n                    SynthesizeEndEvent(\n                        query=query,\n                        response=empty_response_stream,\n                    )\n                )\n                return empty_response_stream\n            else:\n                empty_response = Response(\"Empty Response\")\n                dispatcher.event(\n                    SynthesizeEndEvent(\n                        query=query,\n                        response=empty_response,\n                    )\n                )\n                return empty_response\n\n        if isinstance(query, str):\n            query = QueryBundle(query_str=query)\n\n        with self._callback_manager.event(\n            CBEventType.SYNTHESIZE,\n            payload={EventPayload.QUERY_STR: query.query_str},\n        ) as event:\n            response_str = self.get_response(\n                query_str=query.query_str,\n                text_chunks=[\n                    n.node.get_content(metadata_mode=MetadataMode.LLM) for n in nodes\n                ],\n                **response_kwargs,\n            )\n\n            additional_source_nodes = additional_source_nodes or []\n            source_nodes = list(nodes) + list(additional_source_nodes)\n\n            response = self._prepare_response_output(response_str, source_nodes)\n\n            event.on_end(payload={EventPayload.RESPONSE: response})\n\n        dispatcher.event(\n            SynthesizeEndEvent(\n                query=query,\n                response=response,\n            )\n        )\n        return response"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 134,
+    "end_line": 173,
+    "length": 40,
+    "content": "    def _build_node_list_from_query_result(\n        self, query_result: VectorStoreQueryResult\n    ) -> List[NodeWithScore]:\n        if query_result.nodes is None:\n            # NOTE: vector store does not keep text and returns node indices.\n            # Need to recover all nodes from docstore\n            if query_result.ids is None:\n                raise ValueError(\n                    \"Vector store query result should return at \"\n                    \"least one of nodes or ids.\"\n                )\n            assert isinstance(self._index.index_struct, IndexDict)\n            node_ids = [\n                self._index.index_struct.nodes_dict[idx] for idx in query_result.ids\n            ]\n            nodes = self._docstore.get_nodes(node_ids)\n            query_result.nodes = nodes\n        else:\n            # NOTE: vector store keeps text, returns nodes.\n            # Only need to recover image or index nodes from docstore\n            for i in range(len(query_result.nodes)):\n                source_node = query_result.nodes[i].source_node\n                if (not self._vector_store.stores_text) or (\n                    source_node is not None and source_node.node_type != ObjectType.TEXT\n                ):\n                    node_id = query_result.nodes[i].node_id\n                    if self._docstore.document_exists(node_id):\n                        query_result.nodes[i] = self._docstore.get_node(  # type: ignore\n                            node_id\n                        )\n\n        log_vector_store_query_result(query_result)\n\n        node_with_scores: List[NodeWithScore] = []\n        for ind, node in enumerate(query_result.nodes):\n            score: Optional[float] = None\n            if query_result.similarities is not None:\n                score = query_result.similarities[ind]\n            node_with_scores.append(NodeWithScore(node=node, score=score))\n\n        return node_with_scores"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 127,
+    "end_line": 149,
+    "length": 23,
+    "content": "    def _get_node_with_embedding(\n        self,\n        nodes: Sequence[BaseNode],\n        show_progress: bool = False,\n    ) -> List[BaseNode]:\n        \"\"\"\n        Get tuples of id, node, and embedding.\n\n        Allows us to store these nodes in a vector store.\n        Embeddings are called in batches.\n\n        \"\"\"\n        id_to_embed_map = embed_nodes(\n            nodes, self._embed_model, show_progress=show_progress\n        )\n\n        results = []\n        for node in nodes:\n            embedding = id_to_embed_map[node.node_id]\n            result = node.model_copy()\n            result.embedding = embedding\n            results.append(result)\n        return results"
+  }
+]

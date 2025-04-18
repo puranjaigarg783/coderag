@@ -1,0 +1,5 @@
+Virtual address translation in xv6 is set up in the `vm.c` file. Specifically, the `kvmmake` function in CHUNK 4 is responsible for creating a direct-map page table for the kernel. This function maps various memory regions to physical memory using the `kvmmap` function. For example, it maps the UART registers, virtio mmio disk interface, PLIC, kernel text, kernel data, and trampoline for trap entry/exit to their respective physical memory addresses with specific permissions (read-only, read-write, executable, etc.).
+
+Additionally, the `uvmalloc` function in CHUNK 9 is responsible for allocating and mapping user virtual memory. It allocates physical memory for user pages and maps them to the corresponding virtual addresses in the page table with the specified permissions. The `mappages` function in CHUNK 7 is used to map virtual pages to physical memory by updating the page table entries.
+
+Overall, the virtual address translation setup in xv6 involves creating page tables for both the kernel and user processes, mapping specific memory regions to physical memory, and managing the allocation and deallocation of virtual memory pages.

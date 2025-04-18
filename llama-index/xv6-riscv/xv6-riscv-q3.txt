@@ -1,0 +1,1 @@
+What function does xv6 use to allocate a page of memory in the kernel?

@@ -1,0 +1,1 @@
+The scheduler in xv6 uses a round-robin approach to allocate CPU time to processes. It maintains a run queue of processes and switches between them based on a timer interrupt. Context switching is handled by the swtch() function which saves and restores register states.

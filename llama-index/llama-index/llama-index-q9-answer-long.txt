@@ -1,0 +1,38 @@
+Typical API Pattern in LlamaIndex for Index Construction and Querying
+Based on the provided code chunks, the typical API pattern for constructing and querying an index in LlamaIndex follows these key steps:
+
+1. Document Loading
+First, you need to load your documents using one of LlamaIndex's document readers:
+
+documents = StringIterableReader().load_data(
+    texts=["I went to the store", "I bought an apple"]
+)
+2. Index Construction
+Next, create an index from these documents using the static from_documents() method available in index classes:
+
+index = VectorStoreIndex.from_documents(documents=documents)
+As seen in llama-index-core/llama_index/core/indices/base.py, this method accepts several parameters:
+
+documents: Sequence of Document objects
+storage_context: Optional StorageContext
+show_progress: Boolean to show progress bars
+Other optional parameters like callback_manager and transformations
+3. Query Engine Creation
+Convert the index to a query engine using the as_query_engine() method:
+
+query_engine = index.as_query_engine()
+From base.py, we can see that as_query_engine() internally:
+
+Gets a retriever from the index using as_retriever()
+Resolves the LLM to use
+Creates a RetrieverQueryEngine with the retriever and LLM
+4. Query Execution
+Finally, execute queries using the query engine:
+
+response = query_engine.query("what did I buy?")
+Key Classes Involved
+VectorStoreIndex: A specific index implementation that uses vector embeddings for semantic search (defined in llama-index-core/llama_index/core/indices/vector_store/base.py)
+TreeIndex: Another index implementation shown in examples (from llama-index-core/llama_index/core/legacy)
+BaseIndex: The abstract base class in llama-index-core/llama_index/core/indices/base.py that provides common functionality like from_documents() and as_query_engine()
+RetrieverQueryEngine: The engine that handles queries by retrieving relevant information and generating responses
+This pattern is consistent across different index types in LlamaIndex, providing a unified API for working with various index implementations.

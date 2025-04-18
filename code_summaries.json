@@ -1,0 +1,362 @@
+[
+  {
+    "filename": "grep.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/grep.c",
+    "relpath": "user/grep.c",
+    "summary": "This code is a simple implementation of the grep command in C. It reads input from files or standard input, searches for a specified pattern, and prints matching lines. The code uses basic regular expression operators (^, ., *, $) for pattern matching. The main function checks for the pattern and file arguments, then calls the grep function to perform the search. The match function implements the regular expression matching logic based on Kernighan & Pike's algorithm. The code reads input in chunks, processes each line, and prints matching lines to standard output."
+  },
+  {
+    "filename": "forktest.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/forktest.c",
+    "relpath": "user/forktest.c",
+    "summary": "This code is a test to check if the fork system call fails gracefully. It creates multiple child processes using fork and checks if the system call works correctly. If the fork system call fails, the code will exit with an error message. The code also checks if the wait system call works properly to ensure that the child processes are handled correctly. Finally, the code prints \"fork test OK\" if the test is successful."
+  },
+  {
+    "filename": "ulib.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/ulib.c",
+    "relpath": "user/ulib.c",
+    "summary": "The provided code includes various functions for string and memory manipulation, such as strcpy, strcmp, strlen, memset, strchr, gets, stat, atoi, memmove, memcmp, and memcpy. These functions perform tasks like copying strings, comparing strings, finding characters in a string, and manipulating memory. The code also includes a start function that acts as a wrapper for the main function and ensures that the program exits properly. Overall, this code provides essential functions for handling strings and memory in a C program."
+  },
+  {
+    "filename": "usertests.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/usertests.c",
+    "relpath": "user/usertests.c",
+    "summary": "Error: No response generated."
+  },
+  {
+    "filename": "zombie.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/zombie.c",
+    "relpath": "user/zombie.c",
+    "summary": "This code creates a zombie process that needs to be reparented at exit. It uses the fork() function to create a child process, then the parent process sleeps for 5 seconds to allow the child process to exit before the parent exits. Finally, the exit(0) function is called to terminate the parent process."
+  },
+  {
+    "filename": "ln.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/ln.c",
+    "relpath": "user/ln.c",
+    "summary": "This code is a simple C program that creates a hard link between two files specified as command-line arguments. The program checks if the correct number of arguments are provided, and if not, it displays a usage message. It then attempts to create a hard link using the `link` function with the provided file names. If the link creation fails, an error message is displayed. Finally, the program exits with a status code."
+  },
+  {
+    "filename": "printf.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/printf.c",
+    "relpath": "user/printf.c",
+    "summary": "The provided code includes functions for printing formatted output to a file descriptor. It supports formatting options such as %d (decimal), %u (unsigned decimal), %x (hexadecimal), %p (pointer), and %s (string). The code uses a series of helper functions to handle each type of formatting option and prints the output accordingly. The main functions provided are fprintf() and printf(), which take a format string and variable arguments to print formatted output to the specified file descriptor (fd)."
+  },
+  {
+    "filename": "umalloc.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/umalloc.c",
+    "relpath": "user/umalloc.c",
+    "summary": "This code implements a memory allocator based on the Kernighan and Ritchie algorithm from \"The C Programming Language\" book. It includes functions for memory allocation (malloc) and deallocation (free), as well as a helper function (morecore) to request additional memory from the operating system if needed. The code manages memory blocks using a header structure and a freep pointer to keep track of free memory blocks. The malloc function allocates memory based on the requested size, while the free function releases memory back to the allocator."
+  },
+  {
+    "filename": "rm.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/rm.c",
+    "relpath": "user/rm.c",
+    "summary": "This code is a simple implementation of the \"rm\" command in Unix-like systems. It takes in command line arguments representing file names and attempts to delete each file using the unlink function. If the deletion fails, it prints an error message. The program exits with a status code of 0 upon completion."
+  },
+  {
+    "filename": "user.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/user.h",
+    "relpath": "user/user.h",
+    "summary": "The code provided includes system calls and functions from ulib.c and umalloc.c. The system calls include functions for process management (fork, exit, wait), file operations (open, read, write), memory management (sbrk), and others. The ulib.c file contains utility functions like string manipulation (strcpy, strchr, strcmp), memory operations (memmove, memset, memcpy), and input/output functions (fprintf, printf, gets). The umalloc.c file includes functions for memory allocation and deallocation (malloc, free). Overall, the code provides a collection of essential system calls and utility functions for operating system development."
+  },
+  {
+    "filename": "wc.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/wc.c",
+    "relpath": "user/wc.c",
+    "summary": "This code defines a function `wc` that takes a file descriptor and name as arguments and counts the number of lines, words, and characters in the file. It reads the file in chunks, processes each character, and updates the counts accordingly. The main function opens each file provided as a command-line argument, calls the `wc` function on it, and then closes the file. If no arguments are provided, it calls `wc` on standard input."
+  },
+  {
+    "filename": "kill.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/kill.c",
+    "relpath": "user/kill.c",
+    "summary": "This code is a simple C program that takes command line arguments representing process IDs (PIDs) and sends a kill signal to each of those processes. It first checks if there are enough arguments provided, and if not, it prints a usage message. Then, it iterates through the provided PIDs and sends a kill signal to each one using the `kill` function. Finally, the program exits with a status of 0."
+  },
+  {
+    "filename": "ls.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/ls.c",
+    "relpath": "user/ls.c",
+    "summary": "This code defines a function `fmtname` that extracts the name of a file from a given path and pads it with spaces if necessary. Another function `ls` is defined to list the contents of a directory specified by the path. The main function checks the command line arguments and calls `ls` for each specified path or defaults to listing the current directory if no arguments are provided. The code uses system calls to interact with the file system and print information about files and directories."
+  },
+  {
+    "filename": "echo.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/echo.c",
+    "relpath": "user/echo.c",
+    "summary": "This code is a simple program that takes command line arguments and prints them to the standard output with spaces between each argument. It uses a for loop to iterate through the arguments and uses the write function to print them. If it is not the last argument, it prints a space, otherwise it prints a newline character. Finally, the program exits with a status of 0."
+  },
+  {
+    "filename": "mkdir.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/mkdir.c",
+    "relpath": "user/mkdir.c",
+    "summary": "This code is a simple C program that creates directories specified as arguments when the program is run. It first checks if there are enough arguments provided, and if not, it prints a usage message and exits. Then, it iterates through the arguments provided and attempts to create a directory for each one using the mkdir function. If the directory creation fails, it prints an error message and stops creating directories. Finally, the program exits with a success status."
+  },
+  {
+    "filename": "stressfs.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/stressfs.c",
+    "relpath": "user/stressfs.c",
+    "summary": "This code is a demonstration of a race condition in a file system stress test program. It creates multiple child processes using fork() and each process writes data to a file named \"stressfs0\" and then reads the data back. The code shows how moving the \"acquire\" function after the loop that appends to the idequeue results in a race condition. The code also suggests adding a spin within the idequeue traversal loop to demonstrate the race condition. The program ends by waiting for all child processes to finish before exiting."
+  },
+  {
+    "filename": "cat.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/cat.c",
+    "relpath": "user/cat.c",
+    "summary": "This code is a simple implementation of the \"cat\" command in Unix-like systems. The program reads input from files specified as command-line arguments and prints their contents to the standard output. If no file is specified, it reads from standard input. It uses system calls like read, write, open, and close to interact with files. The program handles errors such as file not found or read/write errors by printing error messages to standard error and exiting with a non-zero status."
+  },
+  {
+    "filename": "grind.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/grind.c",
+    "relpath": "user/grind.c",
+    "summary": "This code runs random system calls in parallel forever. It includes a function `do_rand` that implements a random number generator algorithm. The `rand` function calls `do_rand` to generate random numbers. The `go` function performs various system calls based on random numbers. The `iter` function forks two processes to run the `go` function in parallel. The `main` function continuously forks processes to run the `iter` function, waits for them to finish, and then sleeps for 20 seconds before repeating the process."
+  },
+  {
+    "filename": "sh.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/sh.c",
+    "relpath": "user/sh.c",
+    "summary": "This code implements a simple shell program that can execute commands, handle redirection, pipes, lists of commands, and background commands. It defines structures for different types of commands (EXEC, REDIR, PIPE, LIST, BACK) and provides functions to parse and run commands. The main function reads input commands, processes them, and executes them using the defined structures and functions. The code also includes constructors for creating command structures, parsing functions for different types of commands, and a function to terminate strings in the command structures."
+  },
+  {
+    "filename": "init.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/user/init.c",
+    "relpath": "user/init.c",
+    "summary": "This code is the initial user-level program that starts the shell (sh) in an operating system. It opens the console for input/output, duplicates file descriptors for stdout and stderr, forks a new process to execute the shell, and waits for the shell process to exit before restarting it. The code handles errors and parentless processes appropriately."
+  },
+  {
+    "filename": "log.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/log.c",
+    "relpath": "kernel/log.c",
+    "summary": "The provided code implements a simple logging system for concurrent file system (FS) calls. The log transaction contains updates of multiple FS system calls and commits only when there are no active FS system calls. The log is a physical re-do log containing disk blocks. The code includes functions for initializing the log, recovering from the log, beginning and ending FS system calls, committing transactions, writing to the log, and logging modified blocks. The code ensures that the log is properly maintained and transactions are committed correctly."
+  },
+  {
+    "filename": "elf.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/elf.h",
+    "relpath": "kernel/elf.h",
+    "summary": "The provided code defines the format of an ELF (Executable and Linkable Format) executable file. It includes structures for the file header and program section header. The file header contains information such as magic number, type, machine, entry point, section offsets, and sizes. The program section header includes details about program sections like type, flags, offsets, sizes, and alignment. Additionally, the code defines constants for program header types and flag bits for program header flags. Overall, this code outlines the structure and key components of an ELF executable file."
+  },
+  {
+    "filename": "trap.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/trap.c",
+    "relpath": "kernel/trap.c",
+    "summary": "This code initializes and handles traps and interrupts in the kernel for RISC-V architecture. It includes functions to handle exceptions, system calls, interrupts, and timer interrupts. The code sets up trap handling for user and kernel modes, saves and restores trapframe values, and handles interrupts from devices such as UART and Virtio. The code also includes functions to handle clock interrupts and determine the type of interrupt received."
+  },
+  {
+    "filename": "main.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/main.c",
+    "relpath": "kernel/main.c",
+    "summary": "The code initializes the xv6 kernel by setting up various components such as the console, printf, memory allocation, page tables, processes, traps, interrupt controllers, buffer cache, disk, and user processes. It checks if the CPU ID is 0 and if so, initializes the components and sets a flag to indicate the kernel has started. If the CPU ID is not 0, it waits for the flag to be set before initializing the components and starting the scheduler."
+  },
+  {
+    "filename": "fcntl.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/fcntl.h",
+    "relpath": "kernel/fcntl.h",
+    "summary": "This code defines several constants used for file access modes in C programming. O_RDONLY is set to 0x000, O_WRONLY is set to 0x001, O_RDWR is set to 0x002, O_CREATE is set to 0x200, and O_TRUNC is set to 0x400. These constants can be used in file operations to specify the desired access mode."
+  },
+  {
+    "filename": "defs.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/defs.h",
+    "relpath": "kernel/defs.h",
+    "summary": "The provided code consists of various functions and data structures related to different components of an operating system. \n\n1. The code includes functions for handling buffers, files, inodes, pipes, processes, memory allocation, logging, console input/output, system calls, traps, and more.\n2. Each component has its own set of functions for initialization, management, and operations.\n3. The code also includes functions for handling locks, memory management, string operations, and device drivers.\n4. There are also functions related to process management, virtual memory management, and interrupt handling.\n5. Additionally, there are functions for handling disk I/O operations and peripheral devices.\n\nOverall, the code provides a comprehensive set of functions for managing various aspects of an operating system."
+  },
+  {
+    "filename": "syscall.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/syscall.c",
+    "relpath": "kernel/syscall.c",
+    "summary": "This code file contains functions and prototypes related to handling system calls in an operating system. The code includes functions to fetch data from the current process, retrieve system call arguments, and handle specific system calls. The `syscall` function determines the system call number, looks up the corresponding function, executes it, and stores the return value. The `syscalls` array maps syscall numbers to their respective handling functions. Overall, this code file is essential for managing system calls within the operating system."
+  },
+  {
+    "filename": "pipe.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/pipe.c",
+    "relpath": "kernel/pipe.c",
+    "summary": "The code defines a struct 'pipe' representing a pipe with a data buffer, read and write counters, and flags for open file descriptors. It includes functions for allocating a pipe, closing a pipe, writing to a pipe, and reading from a pipe. The 'pipealloc' function initializes a pipe and file descriptors, 'pipeclose' closes a pipe for reading or writing, 'pipewrite' writes data to a pipe, and 'piperead' reads data from a pipe. The code ensures synchronization and proper handling of read and write operations on the pipe."
+  },
+  {
+    "filename": "virtio.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/virtio.h",
+    "relpath": "kernel/virtio.h",
+    "summary": "This code defines the structure and control registers for a virtio device using the mmio interface. It includes definitions for various control registers, status register bits, device feature bits, and structures for virtio descriptors. The code also includes specific definitions for virtio block devices, such as disks. The code is designed for use with QEMU and follows the virtio specification."
+  },
+  {
+    "filename": "virtio_disk.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/virtio_disk.c",
+    "relpath": "kernel/virtio_disk.c",
+    "summary": "This code is a driver for qemu's virtio disk device, utilizing qemu's mmio interface to virtio. It initializes the virtio disk, negotiates features, sets up the queue, handles disk read/write operations, and processes completion interrupts. The driver manages DMA descriptors, rings, and tracks in-flight operations. It allocates and frees descriptors, formats them for disk operations, and communicates with the device using the available and used rings. The code ensures proper synchronization and error handling throughout the process."
+  },
+  {
+    "filename": "exec.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/exec.c",
+    "relpath": "kernel/exec.c",
+    "summary": "The provided code includes functions for loading a program segment into memory and executing a program. The `exec` function reads an ELF header, loads the program into memory, allocates user stack space, pushes argument strings onto the stack, and sets up the user program's initial state. The `loadseg` function loads a program segment into the page table at a specified virtual address."
+  },
+  {
+    "filename": "spinlock.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/spinlock.c",
+    "relpath": "kernel/spinlock.c",
+    "summary": "The provided code implements mutual exclusion spin locks in an operating system kernel. The code includes functions to initialize a lock, acquire the lock (spinning until it is acquired), release the lock, and check if the current CPU is holding the lock. The code also includes functions to disable and enable interrupts to prevent deadlocks. Additionally, there are functions to push off and pop off interrupts, ensuring they are matched and properly managed. The code uses atomic operations to ensure thread safety and prevent race conditions."
+  },
+  {
+    "filename": "syscall.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/syscall.h",
+    "relpath": "kernel/syscall.h",
+    "summary": "This code defines a list of system call numbers with corresponding values. Each system call number is assigned a unique integer value for identification in the code. This allows the code to easily reference specific system calls by using their assigned numbers."
+  },
+  {
+    "filename": "printf.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/printf.c",
+    "relpath": "kernel/printf.c",
+    "summary": "This code provides formatted console output functionality using the `printf` function. It includes functions for printing integers, pointers, and strings to the console. The code handles various format specifiers like `%d`, `%u`, `%x`, `%p`, and `%s`. There is also a `panic` function that prints an error message and freezes the system. The code uses a spinlock to avoid interleaving concurrent `printf` calls."
+  },
+  {
+    "filename": "param.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/param.h",
+    "relpath": "kernel/param.h",
+    "summary": "The code defines various constants related to the operating system and file system parameters. These include the maximum number of processes, CPUs, open files per process, open files per system, active i-nodes, major device numbers, root disk device number, maximum exec arguments, maximum number of blocks any file system operation writes, maximum data blocks in on-disk log, size of disk block cache, size of file system in blocks, maximum file path name length, and user stack pages. These constants are used to set limits and configurations for the operating system and file system."
+  },
+  {
+    "filename": "proc.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/proc.h",
+    "relpath": "kernel/proc.h",
+    "summary": "The provided code defines several structs that are used to manage the state of processes and CPUs in an operating system kernel. \n\n1. The `context` struct stores saved registers for kernel context switches.\n2. The `cpu` struct represents the per-CPU state, including the currently running process, context for switching to the scheduler, and interrupt status.\n3. The `trapframe` struct contains data for trap handling in assembly code, including kernel page table, stack pointer, program counter, and various registers.\n4. The `proc` struct defines the state of a process, including process state, synchronization locks, process ID, memory information, file descriptors, and other relevant data.\n\nOverall, these structs are essential for managing processes, CPUs, and trap handling in the kernel of an operating system."
+  },
+  {
+    "filename": "sysfile.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/sysfile.c",
+    "relpath": "kernel/sysfile.c",
+    "summary": "This file contains system calls related to file system operations in an operating system. It includes functions for handling file descriptors, file allocation, file reading, writing, closing, and file statistics. Additionally, it includes functions for creating, linking, and deleting files and directories, as well as changing the current working directory. The code also includes functions for executing programs, creating pipes, and allocating file descriptors for read and write operations. The code ensures proper argument checking and interacts with file and file system related structures."
+  },
+  {
+    "filename": "stat.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/stat.h",
+    "relpath": "kernel/stat.h",
+    "summary": "This code defines three constants representing different types of files: directories, regular files, and devices. It also defines a struct called stat, which contains information about a file such as the disk device it belongs to, its inode number, file type, number of links, and file size in bytes."
+  },
+  {
+    "filename": "types.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/types.h",
+    "relpath": "kernel/types.h",
+    "summary": "This code defines several typedefs for different unsigned integer types, including uint, ushort, uchar, uint8, uint16, uint32, and uint64. It also defines a new type pde_t as an unsigned long integer. These typedefs can be used to create aliases for these integer types in the code, making it easier to read and understand."
+  },
+  {
+    "filename": "buf.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/buf.h",
+    "relpath": "kernel/buf.h",
+    "summary": "The code defines a struct named \"buf\" which represents a buffer used in a file system. It contains fields for storing information such as whether data has been read from disk, if the disk \"owns\" the buffer, device number, block number, a sleep lock, reference count, pointers to previous and next buffers in a least recently used (LRU) cache list, and an array to store data. This struct is likely used for managing buffers in a file system implementation."
+  },
+  {
+    "filename": "file.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/file.h",
+    "relpath": "kernel/file.h",
+    "summary": "The provided code defines structures for files and inodes, as well as functions for manipulating device numbers. The file structure contains information about the type of file, reference count, readability, writability, and specific details depending on the type of file (pipe, inode, device). The inode structure represents an in-memory copy of an inode, including device number, inode number, reference count, lock, validity, type, major and minor device numbers, number of links, size, and address pointers. Additionally, the code includes a structure for device functions and defines constants for the console device."
+  },
+  {
+    "filename": "fs.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/fs.h",
+    "relpath": "kernel/fs.h",
+    "summary": "The provided code defines the on-disk file system format used by both the kernel and user programs. It includes structures for the superblock, inode, and directory entry. The superblock describes the disk layout, including the size of the file system image, number of data blocks, inodes, log blocks, and block numbers for various components. The inode structure includes information about file type, size, data block addresses, and links. The code also defines constants for block size, magic number, and various calculations related to block and inode management."
+  },
+  {
+    "filename": "uart.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/uart.c",
+    "relpath": "kernel/uart.c",
+    "summary": "This code contains low-level driver routines for the 16550a UART (Universal Asynchronous Receiver/Transmitter). It defines macros for accessing UART control registers, sets up the UART baud rate and configuration, initializes FIFOs, and handles sending and receiving data through the UART. The code includes functions for transmitting and receiving characters, handling UART interrupts, and managing the UART output buffer. Additionally, it ensures that the UART is properly configured for communication."
+  },
+  {
+    "filename": "kalloc.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/kalloc.c",
+    "relpath": "kernel/kalloc.c",
+    "summary": "This code implements a physical memory allocator for user processes, kernel stacks, page-table pages, and pipe buffers. It allocates whole 4096-byte pages. The code includes functions for initializing the memory allocator, freeing memory, and allocating memory. The allocator keeps track of free memory blocks using a linked list structure. The `kfree` function frees a page of physical memory, while the `kalloc` function allocates a page of physical memory. The code also includes functions for initializing the allocator and freeing memory ranges."
+  },
+  {
+    "filename": "plic.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/plic.c",
+    "relpath": "kernel/plic.c",
+    "summary": "The code initializes the RISC-V Platform Level Interrupt Controller (PLIC) by setting IRQ priorities for UART0 and VIRTIO0. It also initializes the PLIC for a specific hardware thread (hart) by setting enable bits for UART0 and VIRTIO0, setting the priority threshold to 0. The code includes functions to claim and complete interrupts served by the PLIC."
+  },
+  {
+    "filename": "riscv.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/riscv.h",
+    "relpath": "kernel/riscv.h",
+    "summary": "The provided code contains a set of inline functions and macros for interacting with various control and status registers in a RISC-V processor. These functions handle operations such as reading and writing control registers, enabling and disabling interrupts, and managing page table entries. The code also includes definitions for page size, page table entry flags, and virtual address manipulation macros. Additionally, there are functions for flushing the TLB, getting the stack pointer, and managing the thread pointer."
+  },
+  {
+    "filename": "sleeplock.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/sleeplock.h",
+    "relpath": "kernel/sleeplock.h",
+    "summary": "The code defines a struct called sleeplock, which is used for long-term locks for processes. It contains a boolean variable 'locked' to indicate if the lock is held, a spinlock 'lk' to protect the sleep lock, a string 'name' for identifying the lock, and an integer 'pid' for the process holding the lock. This struct is used for synchronization and debugging purposes in operating systems."
+  },
+  {
+    "filename": "memlayout.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/memlayout.h",
+    "relpath": "kernel/memlayout.h",
+    "summary": "The code defines the physical memory layout for a RISC-V machine running on QEMU. It specifies the memory addresses for various components such as boot ROM, CLINT, PLIC, UART0, and virtio disk. It also defines the addresses for UART registers, virtio mmio interface, and PLIC registers. Additionally, it sets the base address for kernel memory usage and defines the layout for kernel stacks and user memory."
+  },
+  {
+    "filename": "start.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/start.c",
+    "relpath": "kernel/start.c",
+    "summary": "The code initializes the system for supervisor mode by setting various registers and configurations. It sets the privilege mode to Supervisor, configures exception handling, disables paging, delegates interrupts to supervisor mode, configures memory protection, initializes timer interrupts, assigns CPU IDs, and switches to supervisor mode to jump to the main function. Additionally, it enables timer interrupts, sets up the sstc extension, allows supervisor access to time-related functions, and requests the first timer interrupt."
+  },
+  {
+    "filename": "sleeplock.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/sleeplock.c",
+    "relpath": "kernel/sleeplock.c",
+    "summary": "This code defines functions for sleeping locks, which are used to synchronize access to shared resources in a multi-threaded environment. The initsleeplock function initializes a sleep lock with a name, the acquiresleep function acquires the lock and puts the calling thread to sleep if the lock is already held, the releasesleep function releases the lock, wakes up any sleeping threads, and the holdingsleep function checks if the current thread holds the lock. The code uses spinlocks to protect the critical sections of the sleep lock operations."
+  },
+  {
+    "filename": "proc.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/proc.c",
+    "relpath": "kernel/proc.c",
+    "summary": "This code file contains the implementation of a basic process management system for a simple operating system. It includes functions for initializing processes, allocating process IDs, creating new processes, handling process termination, scheduling processes on CPUs, and managing process states such as running, sleeping, and zombie. The code also includes functions for memory management, copying data between user and kernel space, and handling process synchronization. The file defines structures for CPUs, processes, and process states, as well as functions for managing process tables, stacks, and page tables. Additionally, it includes functions for handling interrupts, context switching, and system calls."
+  },
+  {
+    "filename": "file.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/file.c",
+    "relpath": "kernel/file.c",
+    "summary": "The provided code contains support functions for system calls involving file descriptors. It includes functions for file allocation, incrementing reference counts, closing files, getting file metadata, reading from files, and writing to files. The code manages file structures, handles file operations such as reading and writing, and ensures proper file closure and cleanup. The code also includes error handling for various file types and operations."
+  },
+  {
+    "filename": "console.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/console.c",
+    "relpath": "kernel/console.c",
+    "summary": "This code implements console input and output functionality to the UART. It reads input line by line and includes special input characters such as newline, backspace, kill line, end of file, and print process list. The code includes functions for sending a character to the UART, handling user writes to the console, handling user reads from the console, processing console input interrupts, and initializing the console. The code also connects read and write system calls to the corresponding functions for console read and write operations."
+  },
+  {
+    "filename": "spinlock.h",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/spinlock.h",
+    "relpath": "kernel/spinlock.h",
+    "summary": "The code defines a struct called spinlock, which includes a variable \"locked\" to indicate if the lock is held, as well as additional fields for debugging purposes such as the name of the lock and the CPU holding the lock. This struct is likely used for implementing mutual exclusion in multithreaded programs."
+  },
+  {
+    "filename": "fs.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/fs.c",
+    "relpath": "kernel/fs.c",
+    "summary": "This file contains the low-level file system manipulation routines for a five-layer file system implementation. The layers include Blocks (allocator for raw disk blocks), Log (crash recovery for multi-step updates), Files (inode allocator, reading, writing, metadata), Directories (inode with special contents - list of other inodes), and Names (paths for convenient naming).\n\nThe code includes functions for reading the super block, initializing the file system, allocating and freeing disk blocks, managing inodes, updating inode information, locking and unlocking inodes, reading and writing data to inodes, managing directories, and handling paths. The code also includes functions for looking up directory entries, creating new directory entries, and navigating through paths to find the corresponding inode.\n\nOverall, the code provides essential functionalities for managing the file system at a low level, including disk block allocation, inode management, directory operations, and path handling."
+  },
+  {
+    "filename": "string.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/string.c",
+    "relpath": "kernel/string.c",
+    "summary": "The provided code includes functions for memory manipulation and string operations. It includes functions like memset, memcmp, memmove, memcpy, strncmp, strncpy, safestrcpy, and strlen. These functions are used for tasks such as setting memory to a specific value, comparing memory blocks, copying memory, comparing strings, and manipulating strings. The code is written in C and uses pointers and loops to achieve the desired functionality."
+  },
+  {
+    "filename": "vm.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/vm.c",
+    "relpath": "kernel/vm.c",
+    "summary": "This code defines functions for managing page tables in a RISC-V operating system kernel. It includes functions for creating, initializing, mapping, allocating, deallocating, copying, and clearing page tables. The code also includes functions for copying data between user and kernel space, as well as functions for handling user memory allocation and deallocation. Overall, the code provides essential functionality for managing memory in the kernel of a RISC-V operating system."
+  },
+  {
+    "filename": "sysproc.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/sysproc.c",
+    "relpath": "kernel/sysproc.c",
+    "summary": "This code contains a series of system call functions that interact with the operating system. The functions include sys_exit, sys_getpid, sys_fork, sys_wait, sys_sbrk, sys_sleep, sys_kill, and sys_uptime. These functions handle processes such as exiting, forking, waiting, allocating memory, sleeping, killing processes, and returning system uptime. The code utilizes arguments passed to the functions to perform various operations related to process management and system functionality."
+  },
+  {
+    "filename": "bio.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/kernel/bio.c",
+    "relpath": "kernel/bio.c",
+    "summary": "The provided code implements a buffer cache system in an operating system kernel. The buffer cache is a linked list of buffer structures that hold cached copies of disk block contents. The purpose of caching disk blocks in memory is to reduce the number of disk reads and provide a synchronization point for disk blocks used by multiple processes.\n\nThe code provides functions to interact with the buffer cache:\n- `bread`: Retrieves a buffer for a specific disk block, reads its contents from disk if necessary, and returns a locked buffer.\n- `bwrite`: Writes the contents of a buffer to disk. The buffer must be locked before calling this function.\n- `brelse`: Releases a locked buffer, moving it to the head of the most-recently-used list in the buffer cache.\n- `bpin` and `bunpin`: Functions to increment and decrement the reference count of a buffer.\n\nThe buffer cache is initialized with a linked list of buffers, and buffers are allocated or recycled based on the least recently used (LRU) policy. The code ensures that only one process can use a buffer at a time and provides synchronization mechanisms to manage buffer access."
+  },
+  {
+    "filename": "mkfs.c",
+    "path": "/home/puranjai-garg/Projects/usfca/project02-ragnarok/data/xv6-riscv/mkfs/mkfs.c",
+    "relpath": "mkfs/mkfs.c",
+    "summary": "This code is a file system creation tool that generates a file system image. It includes functions for allocating blocks, writing to disk sectors, and managing inodes. The main function initializes the file system metadata, allocates blocks for the file system structure, and writes files from the host system to the file system image. The code ensures proper alignment and handling of file system structures."
+  }
+]

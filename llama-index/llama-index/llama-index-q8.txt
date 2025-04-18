@@ -1,0 +1,1 @@
+How does LlamaIndex handle metadata for nodes, and can you filter search results by metadata?

@@ -1,0 +1,74 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 231,
+    "end_line": 255,
+    "length": 25,
+    "content": "// Set up first user process.\nvoid\nuserinit(void)\n{\n  struct proc *p;\n\n  p = allocproc();\n  initproc = p;\n  \n  // allocate one user page and copy initcode's instructions\n  // and data into it.\n  uvmfirst(p->pagetable, initcode, sizeof(initcode));\n  p->sz = PGSIZE;\n\n  // prepare for the very first \"return\" from kernel to user.\n  p->trapframe->epc = 0;      // user program counter\n  p->trapframe->sp = PGSIZE;  // user stack pointer\n\n  safestrcpy(p->name, \"initcode\", sizeof(p->name));\n  p->cwd = namei(\"/\");\n\n  p->state = RUNNABLE;\n\n  release(&p->lock);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/main.c",
+    "filename": "main.c",
+    "relpath": "kernel/main.c",
+    "start_line": 9,
+    "end_line": 45,
+    "length": 37,
+    "content": "// start() jumps here in supervisor mode on all CPUs.\nvoid\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 109,
+    "end_line": 150,
+    "length": 42,
+    "content": "// Look in the process table for an UNUSED proc.\n// If found, initialize state required to run in the kernel,\n// and return with p->lock held.\n// If there are no free procs, or a memory allocation fails, return 0.\nstatic struct proc*\nallocproc(void)\n{\n  struct proc *p;\n\n  for(p = proc; p < &proc[NPROC]; p++) {\n    acquire(&p->lock);\n    if(p->state == UNUSED) {\n      goto found;\n    } else {\n      release(&p->lock);\n    }\n  }\n  return 0;\n\nfound:\n  p->pid = allocpid();\n  p->state = USED;\n\n  // Allocate a trapframe page.\n  if((p->trapframe = (struct trapframe *)kalloc()) == 0){\n    freeproc(p);\n    release(&p->lock);\n    return 0;\n  }\n\n  // An empty user page table.\n  p->pagetable = proc_pagetable(p);\n  if(p->pagetable == 0){\n    freeproc(p);\n    release(&p->lock);\n    return 0;\n  }\n\n  // Set up new context to start executing at forkret,\n  // which returns to user space.\n  memset(&p->context, 0, sizeof(p->context));\n  p->context.ra = (uint64)forkret;\n  p->context.sp = p->kstack + PGSIZE;\n\n  return p;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 214,
+    "end_line": 228,
+    "length": 15,
+    "content": "// Load the user initcode into address 0 of pagetable,\n// for the very first process.\n// sz must be less than a page.\nvoid\nuvmfirst(pagetable_t pagetable, uchar *src, uint sz)\n{\n  char *mem;\n\n  if(sz >= PGSIZE)\n    panic(\"uvmfirst: more than a page\");\n  mem = kalloc();\n  memset(mem, 0, PGSIZE);\n  mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);\n  memmove(mem, src, sz);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 218,
+    "end_line": 229,
+    "length": 12,
+    "content": "// a user program that calls exec(\"/init\")\n// assembled from ../user/initcode.S\n// od -t xC ../user/initcode\nuchar initcode[] = {\n  0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,\n  0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,\n  0x93, 0x08, 0x70, 0x00, 0x73, 0x00, 0x00, 0x00,\n  0x93, 0x08, 0x20, 0x00, 0x73, 0x00, 0x00, 0x00,\n  0xef, 0xf0, 0x9f, 0xff, 0x2f, 0x69, 0x6e, 0x69,\n  0x74, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,\n  0x00, 0x00, 0x00, 0x00\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/user/initcode.S",
+    "filename": "initcode.S",
+    "relpath": "user/initcode.S",
+    "start_line": 1,
+    "end_line": 28,
+    "length": 28,
+    "content": "# Initial process that execs /init.\n# This code runs in user space.\n\n#include \"syscall.h\"\n\n# exec(init, argv)\n.globl start\nstart:\n        la a0, init\n        la a1, argv\n        li a7, SYS_exec\n        ecall\n\n# for(;;) exit();\nexit:\n        li a7, SYS_exit\n        ecall\n        jal exit\n\n# char init[] = \"/init\\0\";\ninit:\n  .string \"/init\\0\"\n\n# char *argv[] = { init, 0 };\n.p2align 2\nargv:\n  .quad init\n  .quad 0"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/user/init.c",
+    "filename": "init.c",
+    "relpath": "user/init.c",
+    "start_line": 1,
+    "end_line": 26,
+    "length": 26,
+    "content": "// init: The initial user-level program\n\n#include \"kernel/types.h\"\n#include \"kernel/stat.h\"\n#include \"kernel/spinlock.h\"\n#include \"kernel/sleeplock.h\"\n#include \"kernel/fs.h\"\n#include \"kernel/file.h\"\n#include \"user/user.h\"\n#include \"kernel/fcntl.h\"\n\nchar *argv[] = { \"sh\", 0 };\n\nint\nmain(void)\n{\n  int pid, wpid;\n\n  if(open(\"console\", O_RDWR) < 0){\n    mknod(\"console\", CONSOLE, 0);\n    open(\"console\", O_RDWR);\n  }\n  dup(0);  // stdout\n  dup(0);  // stderr\n"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 521,
+    "end_line": 543,
+    "length": 23,
+    "content": "// A fork child's very first scheduling by scheduler()\n// will swtch to forkret.\nvoid\nforkret(void)\n{\n  static int first = 1;\n\n  // Still holding p->lock from scheduler.\n  release(&myproc()->lock);\n\n  if (first) {\n    // File system initialization must be run in the context of a\n    // regular process (e.g., because it calls sleep), and thus cannot\n    // be run from main().\n    fsinit(ROOTDEV);\n\n    first = 0;\n    // ensure other cores see first=0.\n    __sync_synchronize();\n  }\n\n  usertrapret();\n}"
+  }
+]

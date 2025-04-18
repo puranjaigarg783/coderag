@@ -1,0 +1,56 @@
+[
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/readers/__init__.py",
+    "filename": "__init__.py",
+    "relpath": "llama-index-core/llama_index/core/readers/__init__.py",
+    "start_line": 1,
+    "end_line": 12,
+    "length": 12,
+    "content": "\"\"\"\nData Connectors for LlamaIndex.\n\nThis module contains the data connectors for LlamaIndex. Each connector inherits\nfrom a `BaseReader` class, connects to a data source, and loads Document objects\nfrom that data source.\n\nYou may also choose to construct Document objects manually, for instance\nin our `Insert How-To Guide <../how_to/insert.html>`_. See below for the API\ndefinition of a Document - the bare minimum is a `text` property.\n\n\"\"\"\n"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/readers/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/readers/base.py",
+    "start_line": 18,
+    "end_line": 45,
+    "length": 28,
+    "content": "class BaseReader(ABC):  # pragma: no cover\n    \"\"\"Utilities for loading data from a directory.\"\"\"\n\n    def lazy_load_data(self, *args: Any, **load_kwargs: Any) -> Iterable[Document]:\n        \"\"\"Load data from the input directory lazily.\"\"\"\n        raise NotImplementedError(\n            f\"{self.__class__.__name__} does not provide lazy_load_data method currently\"\n        )\n\n    async def alazy_load_data(\n        self, *args: Any, **load_kwargs: Any\n    ) -> Iterable[Document]:\n        \"\"\"Load data from the input directory lazily.\"\"\"\n        # Fake async - just calls the sync method. Override in subclasses for real async implementations.\n        return self.lazy_load_data(*args, **load_kwargs)\n\n    def load_data(self, *args: Any, **load_kwargs: Any) -> List[Document]:\n        \"\"\"Load data from the input directory.\"\"\"\n        return list(self.lazy_load_data(*args, **load_kwargs))\n\n    async def aload_data(self, *args: Any, **load_kwargs: Any) -> List[Document]:\n        \"\"\"Load data from the input directory.\"\"\"\n        return self.load_data(*args, **load_kwargs)\n\n    def load_langchain_documents(self, **load_kwargs: Any) -> List[\"LCDocument\"]:\n        \"\"\"Load data in LangChain document format.\"\"\"\n        docs = self.load_data(**load_kwargs)\n        return [d.to_langchain_format() for d in docs]"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/readers/file/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/readers/file/base.py",
+    "start_line": 192,
+    "end_line": 228,
+    "length": 37,
+    "content": "class SimpleDirectoryReader(BaseReader, ResourcesReaderMixin, FileSystemReaderMixin):\n    \"\"\"\n    Simple directory reader.\n\n    Load files from file directory.\n    Automatically select the best file reader given file extensions.\n\n    Args:\n        input_dir (Union[Path, str]): Path to the directory.\n        input_files (List): List of file paths to read\n            (Optional; overrides input_dir, exclude)\n        exclude (List): glob of python file paths to exclude (Optional)\n        exclude_hidden (bool): Whether to exclude hidden files (dotfiles).\n        exclude_empty (bool): Whether to exclude empty files (Optional).\n        encoding (str): Encoding of the files.\n            Default is utf-8.\n        errors (str): how encoding and decoding errors are to be handled,\n              see https://docs.python.org/3/library/functions.html#open\n        recursive (bool): Whether to recursively search in subdirectories.\n            False by default.\n        filename_as_id (bool): Whether to use the filename as the document id.\n            False by default.\n        required_exts (Optional[List[str]]): List of required extensions.\n            Default is None.\n        file_extractor (Optional[Dict[str, BaseReader]]): A mapping of file\n            extension to a BaseReader class that specifies how to convert that file\n            to text. If not specified, use default from DEFAULT_FILE_READER_CLS.\n        num_files_limit (Optional[int]): Maximum number of files to read.\n            Default is None.\n        file_metadata (Optional[Callable[str, Dict]]): A function that takes\n            in a filename and returns a Dict of metadata for the Document.\n            Default is None.\n        raise_on_error (bool): Whether to raise an error if a file cannot be read.\n        fs (Optional[fsspec.AbstractFileSystem]): File system to use. Defaults\n        to using the local file system. Can be changed to use any remote file system\n        exposed via the fsspec interface.\n    \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/readers/file/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/readers/file/base.py",
+    "start_line": 60,
+    "end_line": 101,
+    "length": 42,
+    "content": "def _try_loading_included_file_formats() -> (\n    dict[str, Type[BaseReader]]\n):  # pragma: no cover\n    try:\n        from llama_index.readers.file import (\n            DocxReader,\n            EpubReader,\n            HWPReader,\n            ImageReader,\n            IPYNBReader,\n            MboxReader,\n            PandasCSVReader,\n            PandasExcelReader,\n            PDFReader,\n            PptxReader,\n            VideoAudioReader,\n        )  # pants: no-infer-dep\n    except ImportError:\n        raise ImportError(\"`llama-index-readers-file` package not found\")\n\n    default_file_reader_cls: dict[str, Type[BaseReader]] = {\n        \".hwp\": HWPReader,\n        \".pdf\": PDFReader,\n        \".docx\": DocxReader,\n        \".pptx\": PptxReader,\n        \".ppt\": PptxReader,\n        \".pptm\": PptxReader,\n        \".gif\": ImageReader,\n        \".jpg\": ImageReader,\n        \".png\": ImageReader,\n        \".jpeg\": ImageReader,\n        \".webp\": ImageReader,\n        \".mp3\": VideoAudioReader,\n        \".mp4\": VideoAudioReader,\n        \".csv\": PandasCSVReader,\n        \".epub\": EpubReader,\n        \".mbox\": MboxReader,\n        \".ipynb\": IPYNBReader,\n        \".xls\": PandasExcelReader,\n        \".xlsx\": PandasExcelReader,\n    }\n    return default_file_reader_cls"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-integrations/readers/README.md",
+    "filename": "README.md",
+    "relpath": "llama-index-integrations/readers/README.md",
+    "start_line": 1,
+    "end_line": 20,
+    "length": 20,
+    "content": "# Readers (Loaders)\n\nReaders can be installed directly as packages:\n\n```bash\npip install llama-index-readers-google\n```\n\nFor example, see the code snippets below using the Google Docs Loader.\n\n```python\nfrom llama_index.core import VectorStoreIndex, download_loader\nfrom llama_index.readers.google import GoogleDocsReader\n\ngdoc_ids = [\"1wf-y2pd9C878Oh-FmLH7Q_BQkljdm6TQal-c1pUfrec\"]\nloader = GoogleDocsReader()\ndocuments = loader.load_data(document_ids=gdoc_ids)\nindex = VectorStoreIndex.from_documents(documents)\nindex.query(\"Where did the author go to school?\")\n```"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/readers/__init__.py",
+    "filename": "__init__.py",
+    "relpath": "llama-index-core/llama_index/core/readers/__init__.py",
+    "start_line": 14,
+    "end_line": 32,
+    "length": 19,
+    "content": "from llama_index.core.readers.base import ReaderConfig\nfrom llama_index.core.readers.download import download_loader\n\n# readers\nfrom llama_index.core.readers.file.base import (\n    SimpleDirectoryReader,\n    FileSystemReaderMixin,\n)\nfrom llama_index.core.readers.string_iterable import StringIterableReader\nfrom llama_index.core.schema import Document\n\n__all__ = [\n    \"SimpleDirectoryReader\",\n    \"FileSystemReaderMixin\",\n    \"ReaderConfig\",\n    \"Document\",\n    \"StringIterableReader\",\n    \"download_loader\",\n]"
+  }
+]

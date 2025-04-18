@@ -1,0 +1,74 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/kalloc.c",
+    "filename": "kalloc.c",
+    "relpath": "kernel/kalloc.c",
+    "start_line": 65,
+    "end_line": 82,
+    "length": 18,
+    "content": "// Allocate one 4096-byte page of physical memory.\n// Returns a pointer that the kernel can use.\n// Returns 0 if the memory cannot be allocated.\nvoid *\nkalloc(void)\n{\n  struct run *r;\n\n  acquire(&kmem.lock);\n  r = kmem.freelist;\n  if(r)\n    kmem.freelist = r->next;\n  release(&kmem.lock);\n\n  if(r)\n    memset((char*)r, 5, PGSIZE); // fill with junk\n  return (void*)r;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/kalloc.c",
+    "filename": "kalloc.c",
+    "relpath": "kernel/kalloc.c",
+    "start_line": 1,
+    "end_line": 10,
+    "length": 10,
+    "content": "// Physical memory allocator, for user processes,\n// kernel stacks, page-table pages,\n// and pipe buffers. Allocates whole 4096-byte pages.\n\n#include \"types.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"spinlock.h\"\n#include \"riscv.h\"\n#include \"defs.h\""
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/defs.h",
+    "filename": "defs.h",
+    "relpath": "kernel/defs.h",
+    "start_line": 62,
+    "end_line": 65,
+    "length": 4,
+    "content": "// kalloc.c\nvoid*           kalloc(void);\nvoid            kfree(void *);\nvoid            kinit(void);"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 22,
+    "end_line": 25,
+    "length": 4,
+    "content": "  pagetable_t kpgtbl;\n\n  kpgtbl = (pagetable_t) kalloc();\n  memset(kpgtbl, 0, PGSIZE);"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 95,
+    "end_line": 99,
+    "length": 5,
+    "content": "      pagetable = (pagetable_t)PTE2PA(*pte);\n    } else {\n      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)\n        return 0;\n      memset(pagetable, 0, PGSIZE);"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 203,
+    "end_line": 212,
+    "length": 10,
+    "content": "// create an empty user page table.\n// returns 0 if out of memory.\npagetable_t\nuvmcreate()\n{\n  pagetable_t pagetable;\n  pagetable = (pagetable_t) kalloc();\n  if(pagetable == 0)\n    return 0;\n  memset(pagetable, 0, PGSIZE);\n  return pagetable;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/kalloc.c",
+    "filename": "kalloc.c",
+    "relpath": "kernel/kalloc.c",
+    "start_line": 17,
+    "end_line": 24,
+    "length": 8,
+    "content": "struct run {\n  struct run *next;\n};\n\nstruct {\n  struct spinlock lock;\n  struct run *freelist;\n} kmem;"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 242,
+    "end_line": 247,
+    "length": 6,
+    "content": "  oldsz = PGROUNDUP(oldsz);\n  for(a = oldsz; a < newsz; a += PGSIZE){\n    mem = kalloc();\n    if(mem == 0){\n      uvmdealloc(pagetable, a, oldsz);\n      return 0;"
+  }
+]

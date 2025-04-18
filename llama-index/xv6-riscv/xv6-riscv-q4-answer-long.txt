@@ -1,0 +1,41 @@
+The CPU Scheduler Loop in xv6-riscv
+The CPU scheduler loop in xv6-riscv is located in the scheduler() function defined in kernel/proc.c (lines 437-481 in the provided code). This function is called at the end of the main() function in kernel/main.c after system initialization is complete.
+
+Location and Structure
+The scheduler is designed as an infinite loop that never returns:
+
+void
+scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+
+  c->proc = 0;
+  for(;;){ // This is the infinite scheduler loop
+    // ...scheduler logic...
+  }
+}
+What the Scheduler Loop Does
+The CPU scheduler loop performs the following operations in a continuous cycle:
+
+Enables interrupts: It starts by enabling interrupts with intr_on() to prevent deadlocks if all processes are waiting for interrupts.
+
+Searches for runnable processes: It iterates through the process table, examining each process to find ones in the RUNNABLE state.
+
+Context switching to runnable processes: When it finds a RUNNABLE process, it:
+
+Changes the process state to RUNNING
+Sets the current CPU's process pointer to this process
+Performs a context switch using swtch(&c->context, &p->context) which:
+Saves the current CPU scheduler's registers in the CPU's context
+Loads the process's saved registers from its context
+Transfers control to that process
+Regains control when processes yield: When a process yields the CPU (by calling yield()) or blocks, the swtch() function returns control to the scheduler, which:
+
+Clears the CPU's process pointer (c->proc = 0)
+Continues searching for other runnable processes
+CPU sleep when idle: If no runnable processes are found, the scheduler:
+
+Enables interrupts with intr_on()
+Executes the wfi (Wait For Interrupt) assembly instruction, which puts the CPU in a low-power state until an interrupt occurs
+The scheduler works cooperatively with processes through the context switching mechanism. Processes call yield() to voluntarily give up the CPU, which sets their state to RUNNABLE and calls sched() to switch back to the scheduler.

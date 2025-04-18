@@ -1,0 +1,38 @@
+[
+  {
+    "filepath": "kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 53,
+    "end_line": 67,
+    "length": 15,
+    "content": "  if(r_scause() == 8){\n    // system call\n\n    if(killed(p))\n      exit(-1);\n\n    // sepc points to the ecall instruction,\n    // but we want to return to the next instruction.\n    p->trapframe->epc += 4;\n\n    // an interrupt will change sepc, scause, and sstatus,\n    // so enable only now that we're done with those registers.\n    intr_on();\n\n    syscall();\n  }"
+  },
+  {
+    "filepath": "kernel/syscall.c",
+    "filename": "syscall.c",
+    "relpath": "kernel/syscall.c",
+    "start_line": 131,
+    "end_line": 147,
+    "length": 17,
+    "content": "void\nsyscall(void)\n{\n  int num;\n  struct proc *p = myproc();\n\n  num = p->trapframe->a7;\n  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {\n    // Use num to lookup the system call function for num, call it,\n    // and store its return value in p->trapframe->a0\n    p->trapframe->a0 = syscalls[num]();\n  } else {\n    printf(\"%d %s: unknown sys call %d\\n\",\n            p->pid, p->name, num);\n    p->trapframe->a0 = -1;\n  }\n}"
+  },
+  {
+    "filepath": "kernel/syscall.c",
+    "filename": "syscall.c",
+    "relpath": "kernel/syscall.c",
+    "start_line": 105,
+    "end_line": 129,
+    "length": 25,
+    "content": "// An array mapping syscall numbers from syscall.h\n// to the function that handles the system call.\nstatic uint64 (*syscalls[])(void) = {\n[SYS_fork]    sys_fork,\n[SYS_exit]    sys_exit,\n[SYS_wait]    sys_wait,\n[SYS_pipe]    sys_pipe,\n[SYS_read]    sys_read,\n[SYS_kill]    sys_kill,\n[SYS_exec]    sys_exec,\n[SYS_fstat]   sys_fstat,\n[SYS_chdir]   sys_chdir,\n[SYS_dup]     sys_dup,\n[SYS_getpid]  sys_getpid,\n[SYS_sbrk]    sys_sbrk,\n[SYS_sleep]   sys_sleep,\n[SYS_uptime]  sys_uptime,\n[SYS_open]    sys_open,\n[SYS_write]   sys_write,\n[SYS_mknod]   sys_mknod,\n[SYS_unlink]  sys_unlink,\n[SYS_link]    sys_link,\n[SYS_mkdir]   sys_mkdir,\n[SYS_close]   sys_close,\n};"
+  },
+  {
+    "filepath": "kernel/syscall.c",
+    "filename": "syscall.c",
+    "relpath": "kernel/syscall.c",
+    "start_line": 33,
+    "end_line": 53,
+    "length": 21,
+    "content": "static uint64\nargraw(int n)\n{\n  struct proc *p = myproc();\n  switch (n) {\n  case 0:\n    return p->trapframe->a0;\n  case 1:\n    return p->trapframe->a1;\n  case 2:\n    return p->trapframe->a2;\n  case 3:\n    return p->trapframe->a3;\n  case 4:\n    return p->trapframe->a4;\n  case 5:\n    return p->trapframe->a5;\n  }\n  panic(\"argraw\");\n  return -1;\n}"
+  }
+]

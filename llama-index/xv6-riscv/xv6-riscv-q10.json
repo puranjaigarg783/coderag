@@ -1,0 +1,92 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 52,
+    "end_line": 71,
+    "length": 20,
+    "content": "// Initialize the one kernel_pagetable\nvoid\nkvminit(void)\n{\n  kernel_pagetable = kvmmake();\n}\n\n// Switch h/w page table register to the kernel's page table,\n// and enable paging.\nvoid\nkvminithart()\n{\n  // wait for any previous writes to the page table memory to finish.\n  sfence_vma();\n\n  w_satp(MAKE_SATP(kernel_pagetable));\n\n  // flush stale entries from the TLB.\n  sfence_vma();\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 18,
+    "end_line": 50,
+    "length": 33,
+    "content": "// Make a direct-map page table for the kernel.\npagetable_t\nkvmmake(void)\n{\n  pagetable_t kpgtbl;\n\n  kpgtbl = (pagetable_t) kalloc();\n  memset(kpgtbl, 0, PGSIZE);\n\n  // uart registers\n  kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);\n\n  // virtio mmio disk interface\n  kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);\n\n  // PLIC\n  kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);\n\n  // map kernel text executable and read-only.\n  kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);\n\n  // map kernel data and the physical RAM we'll make use of.\n  kvmmap(kpgtbl, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);\n\n  // map the trampoline for trap entry/exit to\n  // the highest virtual address in the kernel.\n  kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);\n\n  // allocate and map a kernel stack for each process.\n  proc_mapstacks(kpgtbl);\n  \n  return kpgtbl;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 73,
+    "end_line": 103,
+    "length": 31,
+    "content": "// Return the address of the PTE in page table pagetable\n// that corresponds to virtual address va.  If alloc!=0,\n// create any required page-table pages.\n//\n// The risc-v Sv39 scheme has three levels of page-table\n// pages. A page-table page contains 512 64-bit PTEs.\n// A 64-bit virtual address is split into five fields:\n//   39..63 -- must be zero.\n//   30..38 -- 9 bits of level-2 index.\n//   21..29 -- 9 bits of level-1 index.\n//   12..20 -- 9 bits of level-0 index.\n//    0..11 -- 12 bits of byte offset within the page.\npte_t *\nwalk(pagetable_t pagetable, uint64 va, int alloc)\n{\n  if(va >= MAXVA)\n    panic(\"walk\");\n\n  for(int level = 2; level > 0; level--) {\n    pte_t *pte = &pagetable[PX(level, va)];\n    if(*pte & PTE_V) {\n      pagetable = (pagetable_t)PTE2PA(*pte);\n    } else {\n      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)\n        return 0;\n      memset(pagetable, 0, PGSIZE);\n      *pte = PA2PTE(pagetable) | PTE_V;\n    }\n  }\n  return &pagetable[PX(0, va)];\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 138,
+    "end_line": 172,
+    "length": 35,
+    "content": "// Create PTEs for virtual addresses starting at va that refer to\n// physical addresses starting at pa.\n// va and size MUST be page-aligned.\n// Returns 0 on success, -1 if walk() couldn't\n// allocate a needed page-table page.\nint\nmappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)\n{\n  uint64 a, last;\n  pte_t *pte;\n\n  if((va % PGSIZE) != 0)\n    panic(\"mappages: va not aligned\");\n\n  if((size % PGSIZE) != 0)\n    panic(\"mappages: size not aligned\");\n\n  if(size == 0)\n    panic(\"mappages: size\");\n  \n  a = va;\n  last = va + size - PGSIZE;\n  for(;;){\n    if((pte = walk(pagetable, a, 1)) == 0)\n      return -1;\n    if(*pte & PTE_V)\n      panic(\"mappages: remap\");\n    *pte = PA2PTE(pa) | perm | PTE_V;\n    if(a == last)\n      break;\n    a += PGSIZE;\n    pa += PGSIZE;\n  }\n  return 0;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/riscv.h",
+    "filename": "riscv.h",
+    "relpath": "kernel/riscv.h",
+    "start_line": 224,
+    "end_line": 244,
+    "length": 21,
+    "content": "// use riscv's sv39 page table scheme.\n#define SATP_SV39 (8L << 60)\n\n#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))\n\n// supervisor address translation and protection;\n// holds the address of the page table.\nstatic inline void \nw_satp(uint64 x)\n{\n  asm volatile(\"csrw satp, %0\" : : \"r\" (x));\n}\n\nstatic inline uint64\nr_satp()\n{\n  uint64 x;\n  asm volatile(\"csrr %0, satp\" : \"=r\" (x) );\n  return x;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/riscv.h",
+    "filename": "riscv.h",
+    "relpath": "kernel/riscv.h",
+    "start_line": 341,
+    "end_line": 383,
+    "length": 43,
+    "content": "// flush the TLB.\nstatic inline void\nsfence_vma()\n{\n  // the zero, zero means flush all TLB entries.\n  asm volatile(\"sfence.vma zero, zero\");\n}\n\ntypedef uint64 pte_t;\ntypedef uint64 *pagetable_t; // 512 PTEs\n\n#endif // __ASSEMBLER__\n\n#define PGSIZE 4096 // bytes per page\n#define PGSHIFT 12  // bits of offset within a page\n\n#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))\n#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))\n\n#define PTE_V (1L << 0) // valid\n#define PTE_R (1L << 1)\n#define PTE_W (1L << 2)\n#define PTE_X (1L << 3)\n#define PTE_U (1L << 4) // user can access\n\n// shift a physical address to the right place for a PTE.\n#define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)\n\n#define PTE2PA(pte) (((pte) >> 10) << 12)\n\n#define PTE_FLAGS(pte) ((pte) & 0x3FF)\n\n// extract the three 9-bit page table indices from a virtual address.\n#define PXMASK          0x1FF // 9 bits\n#define PXSHIFT(level)  (PGSHIFT+(9*(level)))\n#define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)\n\n// one beyond the highest possible virtual address.\n// MAXVA is actually one bit less than the max allowed by\n// Sv39, to avoid having to sign-extend virtual addresses\n// that have the high bit set.\n#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/main.c",
+    "filename": "main.c",
+    "relpath": "kernel/main.c",
+    "start_line": 9,
+    "end_line": 28,
+    "length": 20,
+    "content": "// start() jumps here in supervisor mode on all CPUs.\nvoid\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trampoline.S",
+    "filename": "trampoline.S",
+    "relpath": "kernel/trampoline.S",
+    "start_line": 84,
+    "end_line": 96,
+    "length": 13,
+    "content": "        # fetch the kernel page table address, from p->trapframe->kernel_satp.\n        ld t1, 0(a0)\n\n        # wait for any previous memory operations to complete, so that\n        # they use the user page table.\n        sfence.vma zero, zero\n\n        # install the kernel page table.\n        csrw satp, t1\n\n        # flush now-stale user entries from the TLB.\n        sfence.vma zero, zero"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trampoline.S",
+    "filename": "trampoline.S",
+    "relpath": "kernel/trampoline.S",
+    "start_line": 106,
+    "end_line": 111,
+    "length": 6,
+    "content": "        # switch to the user page table.\n        sfence.vma zero, zero\n        csrw satp, a0\n        sfence.vma zero, zero"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 102,
+    "end_line": 130,
+    "length": 29,
+    "content": "  // set up trapframe values that uservec will need when\n  // the process next traps into the kernel.\n  p->trapframe->kernel_satp = r_satp();         // kernel page table\n  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack\n  p->trapframe->kernel_trap = (uint64)usertrap;\n  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()\n\n  // set up the registers that trampoline.S's sret will use\n  // to get to user space.\n  \n  // set S Previous Privilege mode to User.\n  unsigned long x = r_sstatus();\n  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode\n  x |= SSTATUS_SPIE; // enable interrupts in user mode\n  w_sstatus(x);\n\n  // set S Exception Program Counter to the saved user pc.\n  w_sepc(p->trapframe->epc);\n\n  // tell trampoline.S the user page table to switch to.\n  uint64 satp = MAKE_SATP(p->pagetable);\n\n  // jump to userret in trampoline.S at the top of memory, which \n  // switches to the user page table, restores user registers,\n  // and switches to user mode with sret.\n  uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);\n  ((void (*)(uint64))trampoline_userret)(satp);"
+  }
+]

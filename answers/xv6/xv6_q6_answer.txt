@@ -1,0 +1,13 @@
+In the xv6-riscv codebase, hardware interrupts like the clock or UART are handled through a combination of functions and mechanisms. 
+
+1. The `trap.c` file contains functions related to handling traps and interrupts. The `kerneltrap` function in lines 133-217 is called when a trap occurs in kernel mode. Within this function, the `devintr` function is called to handle device interrupts. The `devintr` function checks the cause of the interrupt and calls specific interrupt handlers like `uartintr` or `virtio_disk_intr` based on the interrupt cause. If the interrupt is related to the clock, the `clockintr` function is called. This function increments the `ticks` variable and wakes up processes waiting on the `ticks` variable. Additionally, it sets a new timer interrupt using `w_stimecmp`.
+
+2. The `riscv.h` file contains inline functions for enabling, disabling, and checking device interrupts. The `intr_on`, `intr_off`, and `intr_get` functions are used to respectively enable, disable, and check if device interrupts are enabled. These functions manipulate the `sstatus` register to control interrupt handling.
+
+3. The `plic.c` file contains functions related to the Platform-Level Interrupt Controller (PLIC). The `plic_claim` function is called to claim an interrupt, and the `plic_complete` function is called to complete the handling of an interrupt. These functions interact with the PLIC registers to manage interrupts from devices like UART and virtio disk.
+
+4. The `start.c` file contains the `timerinit` function, which initializes timer interrupts for each hart. This function enables supervisor-mode timer interrupts, sets up the sstc extension, allows the supervisor to use stimecmp and time, and requests the first timer interrupt.
+
+5. The `trapinit` and `trapinithart` functions in the `trap.c` file are responsible for setting up exception and trap handling. The `trapinithart` function sets the trap vector to `kernelvec` to handle exceptions and traps while in the kernel. The `usertrap` function handles interrupts, exceptions, or system calls from user space. It switches to kernel mode, saves the user program counter, and then processes the interrupt or exception accordingly.
+
+Overall, xv6-riscv handles hardware interrupts by using a combination of interrupt handling functions, PLIC interactions, timer initialization, and trap handling mechanisms to ensure proper handling of interrupts from devices like the clock and UART.

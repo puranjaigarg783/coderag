@@ -1,0 +1,28 @@
+I want you to help me construct ground truth chunks of source code from xv6-riscv that are needed to answer a question in a prompt. This chunks will be used to serve as the ground truth chunks for evaluating the retrieval mechanism of a RAG system which will use embeddings to and similary search to find relevant chunks. Do not answer the question in the prompt, just determine the most relevant chunks of code from the xv6-riscv source files in this directory that are needed to answer the question. Include relevant surrounding comments in the chunks where appropriate. Provide the chunks in order of most important to least important to answering the question in the prompt. Please provide the chunks in the following json format:
+
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/mkfs/mkfs.c",
+    "filename": "mkfs.c",
+    "relpath": "mkfs/mkfs.c",
+    "start_line": 1,
+    "end_line": 66,
+    "length": 66,
+    "content": "#include <stdio.h>\n#include <unistd.h>\n#include <stdlib.h>\n#include <string.h>\n#include <fcntl.h>\n#include <assert.h>\n\n#define stat xv6_stat  // avoid clash with host struct stat\n#include \"kernel/types.h\"\n#include \"kernel/fs.h\"\n#include \"kernel/stat.h\"\n#include \"kernel/param.h\"\n\n#ifndef static_assert\n#define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)\n#endif\n\n#define NINODES 200\n\n// Disk layout:\n// [ boot block | sb block | log | inode blocks | free bit map | data blocks ]\n\nint nbitmap = FSSIZE/BPB + 1;\nint ninodeblocks = NINODES / IPB + 1;\nint nlog = LOGSIZE;\nint nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)\nint nblocks;  // Number of data blocks\n\nint fsfd;\nstruct superblock sb;\nchar zeroes[BSIZE];\nuint freeinode = 1;\nuint freeblock;\n\n\nvoid balloc(int);\nvoid wsect(uint, void*);\nvoid winode(uint, struct dinode*);\nvoid rinode(uint inum, struct dinode *ip);\nvoid rsect(uint sec, void *buf);\nuint ialloc(ushort type);\nvoid iappend(uint inum, void *p, int n);\nvoid die(const char *);\n\n// convert to riscv byte order\nushort\nxshort(ushort x)\n{\n  ushort y;\n  uchar *a = (uchar*)&y;\n  a[0] = x;\n  a[1] = x >> 8;\n  return y;\n}\n\nuint\nxint(uint x)\n{\n  uint y;\n  uchar *a = (uchar*)&y;\n  a[0] = x;\n  a[1] = x >> 8;\n  a[2] = x >> 16;\n  a[3] = x >> 24;\n  return y;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/mkfs/mkfs.c",
+    "filename": "mkfs.c",
+    "relpath": "mkfs/mkfs.c",
+    "start_line": 66,
+    "end_line": 69,
+    "length": 4,
+    "content": "int\nmain(int argc, char *argv[])"
+  },
+]
+
+Please determine the chunks needed to answer this prompt.
+
+“How does xv6-riscv create a new process when fork() is called?”
+
+Put your JSON output into xv6-riscv-q1.json.

@@ -1,0 +1,1 @@
+What is the typical API pattern to construct an index and query it using LlamaIndex?

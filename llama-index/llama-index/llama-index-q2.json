@@ -1,0 +1,56 @@
+[
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/embeddings/utils.py",
+    "filename": "utils.py",
+    "relpath": "llama-index-core/llama_index/core/embeddings/utils.py",
+    "start_line": 31,
+    "end_line": 140,
+    "length": 110,
+    "content": "def resolve_embed_model(\n    embed_model: Optional[EmbedType] = None,\n    callback_manager: Optional[CallbackManager] = None,\n) -> BaseEmbedding:\n    \"\"\"Resolve embed model.\"\"\"\n    from llama_index.core.settings import Settings\n\n    try:\n        from llama_index.core.bridge.langchain import Embeddings as LCEmbeddings\n    except ImportError:\n        LCEmbeddings = None  # type: ignore\n\n    if embed_model == \"default\":\n        if os.getenv(\"IS_TESTING\"):\n            embed_model = MockEmbedding(embed_dim=8)\n            embed_model.callback_manager = callback_manager or Settings.callback_manager\n            return embed_model\n\n        try:\n            from llama_index.embeddings.openai import (\n                OpenAIEmbedding,\n            )  # pants: no-infer-dep\n\n            from llama_index.embeddings.openai.utils import (\n                validate_openai_api_key,\n            )  # pants: no-infer-dep\n\n            embed_model = OpenAIEmbedding()\n            validate_openai_api_key(embed_model.api_key)  # type: ignore\n        except ImportError:\n            raise ImportError(\n                \"`llama-index-embeddings-openai` package not found, \"\n                \"please run `pip install llama-index-embeddings-openai`\"\n            )\n        except ValueError as e:\n            raise ValueError(\n                \"\\n******\\n\"\n                \"Could not load OpenAI embedding model. \"\n                \"If you intended to use OpenAI, please check your OPENAI_API_KEY.\\n\"\n                \"Original error:\\n\"\n                f\"{e!s}\"\n                \"\\nConsider using embed_model='local'.\\n\"\n                \"Visit our documentation for more embedding options: \"\n                \"https://docs.llamaindex.ai/en/stable/module_guides/models/\"\n                \"embeddings.html#modules\"\n                \"\\n******\"\n            )\n    # for image multi-modal embeddings\n    elif isinstance(embed_model, str) and embed_model.startswith(\"clip\"):\n        try:\n            from llama_index.embeddings.clip import ClipEmbedding  # pants: no-infer-dep\n\n            clip_model_name = (\n                embed_model.split(\":\")[1] if \":\" in embed_model else \"ViT-B/32\"\n            )\n            embed_model = ClipEmbedding(model_name=clip_model_name)\n        except ImportError as e:\n            raise ImportError(\n                \"`llama-index-embeddings-clip` package not found, \"\n                \"please run `pip install llama-index-embeddings-clip` and `pip install git+https://github.com/openai/CLIP.git`\"\n            )\n\n    if isinstance(embed_model, str):\n        try:\n            from llama_index.embeddings.huggingface import (\n                HuggingFaceEmbedding,\n            )  # pants: no-infer-dep\n\n            splits = embed_model.split(\":\", 1)\n            is_local = splits[0]\n            model_name = splits[1] if len(splits) > 1 else None\n            if is_local != \"local\":\n                raise ValueError(\n                    \"embed_model must start with str 'local' or of type BaseEmbedding\"\n                )\n\n            cache_folder = os.path.join(get_cache_dir(), \"models\")\n            os.makedirs(cache_folder, exist_ok=True)\n\n            embed_model = HuggingFaceEmbedding(\n                model_name=model_name, cache_folder=cache_folder\n            )\n        except ImportError:\n            raise ImportError(\n                \"`llama-index-embeddings-huggingface` package not found, \"\n                \"please run `pip install llama-index-embeddings-huggingface`\"\n            )\n\n    if LCEmbeddings is not None and isinstance(embed_model, LCEmbeddings):\n        try:\n            from llama_index.embeddings.langchain import (\n                LangchainEmbedding,\n            )  # pants: no-infer-dep\n\n            embed_model = LangchainEmbedding(embed_model)\n        except ImportError as e:\n            raise ImportError(\n                \"`llama-index-embeddings-langchain` package not found, \"\n                \"please run `pip install llama-index-embeddings-langchain`\"\n            )\n\n    if embed_model is None:\n        print(\"Embeddings have been explicitly disabled. Using MockEmbedding.\")\n        embed_model = MockEmbedding(embed_dim=1)\n\n    assert isinstance(embed_model, BaseEmbedding)\n\n    embed_model.callback_manager = callback_manager or Settings.callback_manager\n\n    return embed_model"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/settings.py",
+    "filename": "settings.py",
+    "relpath": "llama-index-core/llama_index/core/settings.py",
+    "start_line": 60,
+    "end_line": 74,
+    "length": 15,
+    "content": "    @property\n    def embed_model(self) -> BaseEmbedding:\n        \"\"\"Get the embedding model.\"\"\"\n        if self._embed_model is None:\n            self._embed_model = resolve_embed_model(\"default\")\n\n        if self._callback_manager is not None:\n            self._embed_model.callback_manager = self._callback_manager\n\n        return self._embed_model\n\n    @embed_model.setter\n    def embed_model(self, embed_model: EmbedType) -> None:\n        \"\"\"Set the embedding model.\"\"\"\n        self._embed_model = resolve_embed_model(embed_model)"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/base/embeddings/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/base/embeddings/base.py", 
+    "start_line": 67,
+    "end_line": 85,
+    "length": 19,
+    "content": "class BaseEmbedding(TransformComponent, DispatcherSpanMixin):\n    \"\"\"Base class for embeddings.\"\"\"\n\n    model_config = ConfigDict(\n        protected_namespaces=(\"pydantic_model_\",), arbitrary_types_allowed=True\n    )\n    model_name: str = Field(\n        default=\"unknown\", description=\"The name of the embedding model.\"\n    )\n    embed_batch_size: int = Field(\n        default=DEFAULT_EMBED_BATCH_SIZE,\n        description=\"The batch size for embedding calls.\",\n        gt=0,\n        le=2048,\n    )\n    callback_manager: CallbackManager = Field(\n        default_factory=lambda: CallbackManager([]), exclude=True\n    )\n    num_workers: Optional[int] = Field(\n        default=None,\n        description=\"The number of workers to use for async embedding calls.\",\n    )"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/base/embeddings/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/base/embeddings/base.py",
+    "start_line": 97,
+    "end_line": 104,
+    "length": 8,
+    "content": "    @abstractmethod\n    def _get_query_embedding(self, query: str) -> Embedding:\n        \"\"\"\n        Embed the input query synchronously.\n\n        Subclasses should implement this method. Reference get_query_embedding's\n        docstring for more information.\n        \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/base/embeddings/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/base/embeddings/base.py",
+    "start_line": 201,
+    "end_line": 209,
+    "length": 9,
+    "content": "    @abstractmethod\n    def _get_text_embedding(self, text: str) -> Embedding:\n        \"\"\"\n        Embed the input text synchronously.\n\n        Subclasses should implement this method. Reference get_text_embedding's\n        docstring for more information.\n        \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/base/embeddings/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/base/embeddings/base.py",
+    "start_line": 240,
+    "end_line": 249,
+    "length": 10,
+    "content": "    @dispatcher.span\n    def get_text_embedding(self, text: str) -> Embedding:\n        \"\"\"\n        Embed the input text.\n\n        When embedding text, depending on the model, a special instruction\n        can be prepended to the raw text string. For example, \"Represent the\n        document for retrieval: \". If you're curious, other examples of\n        predefined instructions can be found in embeddings/huggingface_utils.py.\n        \"\"\""
+  }
+]

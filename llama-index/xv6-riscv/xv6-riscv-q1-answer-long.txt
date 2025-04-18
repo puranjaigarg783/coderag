@@ -1,0 +1,61 @@
+How xv6-riscv Creates a New Process with fork()
+When fork() is called in xv6-riscv, the system creates a new child process that is almost identical to the parent process. The process follows these key steps:
+
+1. System Call Entry
+The process begins when a user program calls fork(), which is handled by the system call interface in kernel/sysproc.c:
+
+uint64 sys_fork(void) {
+  return fork();
+}
+2. Process Structure Allocation
+In kernel/proc.c, the main fork() function:
+
+Gets the current (parent) process: struct proc *p = myproc();
+Allocates a new process structure by calling allocproc()
+3. Process Allocation (allocproc function)
+The allocproc() function:
+
+Searches for an unused process slot in the process table
+Marks it as USED and assigns a new PID
+Allocates a trapframe for storing CPU registers
+Creates an empty user page table with proc_pagetable()
+Sets up the process context to start executing at forkret function
+Returns the process structure with lock held
+4. Memory Space Duplication
+The parent's memory is copied to the child using uvmcopy():
+
+Iterates through each page in the parent's address space
+Allocates new physical memory for each page
+Uses memmove to copy the content from parent to child
+Maps the new page in the child's page table with identical permissions
+Sets the child's memory size equal to the parent's: np->sz = p->sz;
+5. CPU Register State Copying
+The parent's register state is duplicated:
+
+Copies the parent's trapframe to the child: *(np->trapframe) = *(p->trapframe);
+Modifies the return value register (a0) in the child to return 0: np->trapframe->a0 = 0;
+6. File Descriptor Inheritance
+Open file descriptors are duplicated:
+
+Loops through the parent's open files
+Calls filedup() to increment reference counts on shared file objects
+Duplicates the current working directory with idup(p->cwd)
+Copies the process name with safestrcpy()
+7. Parent-Child Relationship
+The process hierarchy is established:
+
+Records the child's PID to return to the parent
+Sets the parent field in the child process: np->parent = p;
+Marks the child as RUNNABLE so the scheduler can run it
+8. Process Return Values
+Fork creates two execution paths with different return values:
+
+Parent receives the child's PID as return value: return pid;
+Child gets a return value of 0 due to the modification of the a0 register
+9. Child's First Execution
+When the child process is scheduled for the first time:
+
+Execution begins at forkret() function
+It calls usertrapret() to return to user space
+The child resumes execution at the instruction after the fork() call
+This mechanism creates a nearly identical copy of the parent process, with both processes continuing execution from the same point but with different return values, allowing them to determine their role (parent or child).

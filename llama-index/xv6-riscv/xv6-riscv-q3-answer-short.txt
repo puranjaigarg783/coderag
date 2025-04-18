@@ -1,0 +1,1 @@
+xv6’s physical page allocator is implemented in kernel/kalloc.c. The function kalloc() returns a free 4096-byte page. It acquires the spinlock kmem.lock and removes one page from the free list kmem.freelist​, then releases the lock and returns the page pointer​. This ensures thread-safe allocation of memory pages.

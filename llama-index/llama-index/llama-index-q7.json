@@ -1,0 +1,56 @@
+[
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/retrievers/__init__.py",
+    "filename": "__init__.py",
+    "relpath": "llama-index-core/llama_index/core/retrievers/__init__.py",
+    "start_line": 1,
+    "end_line": 88,
+    "length": 88,
+    "content": "from llama_index.core.base.base_retriever import BaseRetriever\nfrom llama_index.core.image_retriever import BaseImageRetriever\nfrom llama_index.core.indices.empty.retrievers import EmptyIndexRetriever\nfrom llama_index.core.indices.keyword_table.retrievers import (\n    KeywordTableSimpleRetriever,\n)\nfrom llama_index.core.indices.knowledge_graph.retrievers import (\n    KGTableRetriever,\n    KnowledgeGraphRAGRetriever,\n)\nfrom llama_index.core.indices.list.retrievers import (\n    ListIndexEmbeddingRetriever,\n    ListIndexRetriever,\n    SummaryIndexEmbeddingRetriever,\n    SummaryIndexLLMRetriever,\n    SummaryIndexRetriever,\n)\nfrom llama_index.core.indices.property_graph import (\n    BasePGRetriever,\n    CustomPGRetriever,\n    CypherTemplateRetriever,\n    LLMSynonymRetriever,\n    PGRetriever,\n    TextToCypherRetriever,\n    VectorContextRetriever,\n)\nfrom llama_index.core.indices.struct_store.sql_retriever import (\n    NLSQLRetriever,\n    SQLParserMode,\n    SQLRetriever,\n)\nfrom llama_index.core.indices.tree.all_leaf_retriever import TreeAllLeafRetriever\nfrom llama_index.core.indices.tree.select_leaf_embedding_retriever import (\n    TreeSelectLeafEmbeddingRetriever,\n)\nfrom llama_index.core.indices.tree.select_leaf_retriever import (\n    TreeSelectLeafRetriever,\n)\nfrom llama_index.core.indices.tree.tree_root_retriever import TreeRootRetriever\nfrom llama_index.core.indices.vector_store.retrievers import (\n    VectorIndexAutoRetriever,\n    VectorIndexRetriever,\n)\nfrom llama_index.core.retrievers.auto_merging_retriever import AutoMergingRetriever\nfrom llama_index.core.retrievers.fusion_retriever import QueryFusionRetriever\nfrom llama_index.core.retrievers.recursive_retriever import RecursiveRetriever\nfrom llama_index.core.retrievers.router_retriever import RouterRetriever\nfrom llama_index.core.retrievers.transform_retriever import TransformRetriever\n\n__all__ = [\n    \"VectorIndexRetriever\",\n    \"VectorIndexAutoRetriever\",\n    \"SummaryIndexRetriever\",\n    \"SummaryIndexEmbeddingRetriever\",\n    \"SummaryIndexLLMRetriever\",\n    \"KGTableRetriever\",\n    \"KnowledgeGraphRAGRetriever\",\n    \"EmptyIndexRetriever\",\n    \"TreeAllLeafRetriever\",\n    \"TreeSelectLeafEmbeddingRetriever\",\n    \"TreeSelectLeafRetriever\",\n    \"TreeRootRetriever\",\n    \"TransformRetriever\",\n    \"KeywordTableSimpleRetriever\",\n    \"BaseRetriever\",\n    \"RecursiveRetriever\",\n    \"AutoMergingRetriever\",\n    \"RouterRetriever\",\n    \"BM25Retriever\",\n    \"QueryFusionRetriever\",\n    # property graph\n    \"BasePGRetriever\",\n    \"PGRetriever\",\n    \"CustomPGRetriever\",\n    \"LLMSynonymRetriever\",\n    \"CypherTemplateRetriever\",\n    \"TextToCypherRetriever\",\n    \"VectorContextRetriever\",\n    # SQL\n    \"SQLRetriever\",\n    \"NLSQLRetriever\",\n    \"SQLParserMode\",\n    # legacy\n    \"ListIndexEmbeddingRetriever\",\n    \"ListIndexRetriever\",\n    # image\n    \"BaseImageRetriever\",\n]"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 45,
+    "end_line": 61,
+    "length": 17,
+    "content": "class VectorStoreQueryMode(str, Enum):\n    \"\"\"Vector store query mode.\"\"\"\n\n    DEFAULT = \"default\"\n    SPARSE = \"sparse\"\n    HYBRID = \"hybrid\"\n    TEXT_SEARCH = \"text_search\"\n    SEMANTIC_HYBRID = \"semantic_hybrid\"\n\n    # fit learners\n    SVM = \"svm\"\n    LOGISTIC_REGRESSION = \"logistic_regression\"\n    LINEAR_REGRESSION = \"linear_regression\"\n\n    # maximum marginal relevance\n    MMR = \"mmr\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 24,
+    "end_line": 39,
+    "length": 16,
+    "content": "class VectorIndexRetriever(BaseRetriever):\n    \"\"\"Vector index retriever.\n\n    Args:\n        index (VectorStoreIndex): vector store index.\n        similarity_top_k (int): number of top k results to return.\n        vector_store_query_mode (str): vector store query mode\n            See reference for VectorStoreQueryMode for full list of supported modes.\n        filters (Optional[MetadataFilters]): metadata filters, defaults to None\n        alpha (float): weight for sparse/dense retrieval, only used for\n            hybrid query mode.\n        doc_ids (Optional[List[str]]): list of documents to constrain search.\n        vector_store_kwargs (dict): Additional vector store specific kwargs to pass\n            through to the vector store at query time.\n\n    \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/retrievers/router_retriever.py",
+    "filename": "router_retriever.py",
+    "relpath": "llama-index-core/llama_index/core/retrievers/router_retriever.py",
+    "start_line": 20,
+    "end_line": 32,
+    "length": 13,
+    "content": "class RouterRetriever(BaseRetriever):\n    \"\"\"Router retriever.\n\n    Selects one (or multiple) out of several candidate retrievers to execute a query.\n\n    Args:\n        selector (BaseSelector): A selector that chooses one out of many options based\n            on each candidate's metadata and query.\n        retriever_tools (Sequence[RetrieverTool]): A sequence of candidate\n            retrievers. They must be wrapped as tools to expose metadata to\n            the selector.\n\n    \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/retrievers/fusion_retriever.py",
+    "filename": "fusion_retriever.py",
+    "relpath": "llama-index-core/llama_index/core/retrievers/fusion_retriever.py",
+    "start_line": 24,
+    "end_line": 30,
+    "length": 7,
+    "content": "class FUSION_MODES(str, Enum):\n    \"\"\"Enum for different fusion modes.\"\"\"\n\n    RECIPROCAL_RANK = \"reciprocal_rerank\"  # apply reciprocal rank fusion\n    RELATIVE_SCORE = \"relative_score\"  # apply relative score fusion\n    DIST_BASED_SCORE = \"dist_based_score\"  # apply distance-based score fusion\n    SIMPLE = \"simple\"  # simple re-ordering of results based on original scores"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/retrievers/auto_merging_retriever.py",
+    "filename": "auto_merging_retriever.py",
+    "relpath": "llama-index-core/llama_index/core/retrievers/auto_merging_retriever.py",
+    "start_line": 26,
+    "end_line": 32,
+    "length": 7,
+    "content": "class AutoMergingRetriever(BaseRetriever):\n    \"\"\"This retriever will try to merge context into parent context.\n\n    The retriever first retrieves chunks from a vector store.\n    Then, it will try to merge the chunks into a single context.\n\n    \"\"\""
+  }
+]

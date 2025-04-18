@@ -1,0 +1,15 @@
+Ground Truth Summary:
+Total number of files: 6
+Total number of chunks: 9
+Total number of lines: 177
+
+Test Set Summary:
+Total number of files: 6
+Total number of chunks: 10
+Total number of lines: 1034
+
+{'overlap_count': 89, 'only_in_file1_count': 88, 'only_in_file2_count': 693, 'lines_in_file1': 177, 'lines_in_file2': 782}
+Retrieval Performance Metrics:
+Recall: 0.5028
+Precision: 0.1138
+F1: 0.1856

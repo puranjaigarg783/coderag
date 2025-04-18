@@ -1,0 +1,83 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/spinlock.c",
+    "filename": "spinlock.c",
+    "relpath": "kernel/spinlock.c",
+    "start_line": 1,
+    "end_line": 43,
+    "length": 43,
+    "content": "// Mutual exclusion spin locks.\n\n#include \"types.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"spinlock.h\"\n#include \"riscv.h\"\n#include \"proc.h\"\n#include \"defs.h\"\n\nvoid\ninitlock(struct spinlock *lk, char *name)\n{\n  lk->name = name;\n  lk->locked = 0;\n  lk->cpu = 0;\n}\n\n// Acquire the lock.\n// Loops (spins) until the lock is acquired.\nvoid\nacquire(struct spinlock *lk)\n{\n  push_off(); // disable interrupts to avoid deadlock.\n  if(holding(lk))\n    panic(\"acquire\");\n\n  // On RISC-V, sync_lock_test_and_set turns into an atomic swap:\n  //   a5 = 1\n  //   s1 = &lk->locked\n  //   amoswap.w.aq a5, a5, (s1)\n  while(__sync_lock_test_and_set(&lk->locked, 1) != 0)\n    ;\n\n  // Tell the C compiler and the processor to not move loads or stores\n  // past this point, to ensure that the critical section's memory\n  // references happen strictly after the lock is acquired.\n  // On RISC-V, this emits a fence instruction.\n  __sync_synchronize();\n\n  // Record info about lock acquisition for holding() and debugging.\n  lk->cpu = mycpu();\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/spinlock.c",
+    "filename": "spinlock.c",
+    "relpath": "kernel/spinlock.c",
+    "start_line": 45,
+    "end_line": 72,
+    "length": 28,
+    "content": "// Release the lock.\nvoid\nrelease(struct spinlock *lk)\n{\n  if(!holding(lk))\n    panic(\"release\");\n\n  lk->cpu = 0;\n\n  // Tell the C compiler and the CPU to not move loads or stores\n  // past this point, to ensure that all the stores in the critical\n  // section are visible to other CPUs before the lock is released,\n  // and that loads in the critical section occur strictly before\n  // the lock is released.\n  // On RISC-V, this emits a fence instruction.\n  __sync_synchronize();\n\n  // Release the lock, equivalent to lk->locked = 0.\n  // This code doesn't use a C assignment, since the C standard\n  // implies that an assignment might be implemented with\n  // multiple store instructions.\n  // On RISC-V, sync_lock_release turns into an atomic swap:\n  //   s1 = &lk->locked\n  //   amoswap.w zero, zero, (s1)\n  __sync_lock_release(&lk->locked);\n\n  pop_off();\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/spinlock.c",
+    "filename": "spinlock.c",
+    "relpath": "kernel/spinlock.c",
+    "start_line": 84,
+    "end_line": 110,
+    "length": 27,
+    "content": "// push_off/pop_off are like intr_off()/intr_on() except that they are matched:\n// it takes two pop_off()s to undo two push_off()s.  Also, if interrupts\n// are initially off, then push_off, pop_off leaves them off.\n\nvoid\npush_off(void)\n{\n  int old = intr_get();\n\n  intr_off();\n  if(mycpu()->noff == 0)\n    mycpu()->intena = old;\n  mycpu()->noff += 1;\n}\n\nvoid\npop_off(void)\n{\n  struct cpu *c = mycpu();\n  if(intr_get())\n    panic(\"pop_off - interruptible\");\n  if(c->noff < 1)\n    panic(\"pop_off\");\n  c->noff -= 1;\n  if(c->noff == 0 && c->intena)\n    intr_on();\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/spinlock.h",
+    "filename": "spinlock.h",
+    "relpath": "kernel/spinlock.h",
+    "start_line": 1,
+    "end_line": 8,
+    "length": 8,
+    "content": "// Mutual exclusion lock.\nstruct spinlock {\n  uint locked;       // Is the lock held?\n\n  // For debugging:\n  char *name;        // Name of lock.\n  struct cpu *cpu;   // The cpu holding the lock.\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/sleeplock.h",
+    "filename": "sleeplock.h",
+    "relpath": "kernel/sleeplock.h",
+    "start_line": 1,
+    "end_line": 9,
+    "length": 9,
+    "content": "// Long-term locks for processes\nstruct sleeplock {\n  uint locked;       // Is the lock held?\n  struct spinlock lk; // spinlock protecting this sleep lock\n  \n  // For debugging:\n  char *name;        // Name of lock.\n  int pid;           // Process holding lock\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/sleeplock.c",
+    "filename": "sleeplock.c",
+    "relpath": "kernel/sleeplock.c",
+    "start_line": 1,
+    "end_line": 41,
+    "length": 41,
+    "content": "// Sleeping locks\n\n#include \"types.h\"\n#include \"riscv.h\"\n#include \"defs.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"spinlock.h\"\n#include \"proc.h\"\n#include \"sleeplock.h\"\n\nvoid\ninitsleeplock(struct sleeplock *lk, char *name)\n{\n  initlock(&lk->lk, \"sleep lock\");\n  lk->name = name;\n  lk->locked = 0;\n  lk->pid = 0;\n}\n\nvoid\nacquiresleep(struct sleeplock *lk)\n{\n  acquire(&lk->lk);\n  while (lk->locked) {\n    sleep(lk, &lk->lk);\n  }\n  lk->locked = 1;\n  lk->pid = myproc()->pid;\n  release(&lk->lk);\n}\n\nvoid\nreleasesleep(struct sleeplock *lk)\n{\n  acquire(&lk->lk);\n  lk->locked = 0;\n  lk->pid = 0;\n  wakeup(lk);\n  release(&lk->lk);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/riscv.h",
+    "filename": "riscv.h",
+    "relpath": "kernel/riscv.h",
+    "start_line": 287,
+    "end_line": 307,
+    "length": 21,
+    "content": "// enable device interrupts\nstatic inline void\nintr_on()\n{\n  w_sstatus(r_sstatus() | SSTATUS_SIE);\n}\n\n// disable device interrupts\nstatic inline void\nintr_off()\n{\n  w_sstatus(r_sstatus() & ~SSTATUS_SIE);\n}\n\n// are device interrupts enabled?\nstatic inline int\nintr_get()\n{\n  uint64 x = r_sstatus();\n  return (x & SSTATUS_SIE) != 0;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.h",
+    "filename": "proc.h",
+    "relpath": "kernel/proc.h",
+    "start_line": 21,
+    "end_line": 27,
+    "length": 7,
+    "content": "// Per-CPU state.\nstruct cpu {\n  struct proc *proc;          // The process running on this cpu, or null.\n  struct context context;     // swtch() here to enter scheduler().\n  int noff;                   // Depth of push_off() nesting.\n  int intena;                 // Were interrupts enabled before push_off()?\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.h",
+    "filename": "proc.h",
+    "relpath": "kernel/proc.h",
+    "start_line": 85,
+    "end_line": 86,
+    "length": 2,
+    "content": "struct proc {\n  struct spinlock lock;"
+  }
+]

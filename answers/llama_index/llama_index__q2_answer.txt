@@ -1,0 +1,7 @@
+LlamaIndex defines the embedding model to use for text in the `embed_model` property of the `BaseEmbedding` class in the `base.py` file (Chunk 7). The `embed_model` property is a getter/setter that resolves the embedding model based on the provided input. If the `embed_model` is not explicitly set, it defaults to the value returned by the `resolve_embed_model` function.
+
+This embedding model is then used in various retriever classes for text retrieval. For example, in the `SummaryIndexEmbeddingRetriever` class in the `retrievers.py` file (Chunk 1), the `embed_model` is passed as a parameter to the retriever during initialization. The `_get_embeddings` method in this class uses the embedding model to get text embeddings for nodes and queries.
+
+Additionally, in the `DocumentSummaryIndex` class in the `base.py` file (Chunk 10), the `as_retriever` method uses the embedding model to create an `EmbeddingRetriever` when the `retriever_mode` is set to `_RetrieverMode.EMBEDDING`.
+
+Therefore, the embedding model for text is defined at a global level in the `BaseEmbedding` class and is utilized by various retriever classes throughout the LlamaIndex codebase for text-related tasks.

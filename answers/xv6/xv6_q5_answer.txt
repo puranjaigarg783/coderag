@@ -1,0 +1,10 @@
+In xv6, system calls are dispatched to the correct kernel function through the `syscall` function in `syscall.c` (Chunk 2). 
+
+1. The `syscall` function retrieves the system call number from the `a7` register of the current process's trapframe.
+2. It then checks if the system call number is within the valid range and if the corresponding function pointer in the `syscalls` array is not NULL.
+3. If the conditions are met, the `syscall` function calls the appropriate kernel function based on the system call number and stores the return value in the `a0` register of the trapframe.
+4. If the system call number is invalid or the function pointer is NULL, an error message is printed indicating an unknown system call.
+
+The `syscalls` array in Chunk 2 maps system call numbers to their respective kernel functions. Each element in the array corresponds to a specific system call number and points to the corresponding kernel function. For example, `syscalls[SYS_read]` points to the `sys_read` function, which handles the `read` system call.
+
+When a system call is made by a user program, the `syscall` function is invoked by a trap into the kernel. The `syscall` function then looks up the appropriate kernel function based on the system call number and executes it to perform the requested operation. This mechanism allows xv6 to efficiently dispatch system calls to the correct kernel functions based on the system call number.

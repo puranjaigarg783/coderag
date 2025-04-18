@@ -1,0 +1,18 @@
+Using LlamaIndex typically involves: (a) reading your data into Document objects, (b) building an index from those documents, and (c) querying the index. For example, using the high-level API:
+python
+Copy
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+documents = SimpleDirectoryReader("YOUR_DATA_DIRECTORY").load_data()
+index = VectorStoreIndex.from_documents(documents)
+This will load files from a directory into documents and then create a vector index​
+github.com
+. To query the index, you can do:
+python
+Copy
+query_engine = index.as_query_engine()
+answer = query_engine.query("Your question here")
+print(answer)
+
+which will retrieve relevant info and print a response​
+github.com
+. Under the hood, as_query_engine() sets up a default retriever and synthesizer for the index. This simple pattern – ingest data, build index, ask questions – is the intended usage.

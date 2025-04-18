@@ -1,0 +1,65 @@
+[
+  {
+    "filepath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 262,
+    "end_line": 325,
+    "length": 64,
+    "content": "@runtime_checkable\nclass VectorStore(Protocol):\n    \"\"\"Abstract vector store protocol.\"\"\"\n\n    stores_text: bool\n    is_embedding_query: bool = True\n\n    @property\n    def client(self) -> Any:\n        \"\"\"Get client.\"\"\"\n        ...\n\n    def add(\n        self,\n        nodes: List[BaseNode],\n        **add_kwargs: Any,\n    ) -> List[str]:\n        \"\"\"Add nodes with embedding to vector store.\"\"\"\n        ...\n\n    async def async_add(\n        self,\n        nodes: List[BaseNode],\n        **kwargs: Any,\n    ) -> List[str]:\n        \"\"\"\n        Asynchronously add nodes with embedding to vector store.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call add synchronously.\n        \"\"\"\n        return self.add(nodes)\n\n    def delete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:\n        \"\"\"\n        Delete nodes using with ref_doc_id.\"\"\"\n        ...\n\n    async def adelete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:\n        \"\"\"\n        Delete nodes using with ref_doc_id.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call delete synchronously.\n        \"\"\"\n        self.delete(ref_doc_id, **delete_kwargs)\n\n    def query(self, query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult:\n        \"\"\"Query vector store.\"\"\"\n        ...\n\n    async def aquery(\n        self, query: VectorStoreQuery, **kwargs: Any\n    ) -> VectorStoreQueryResult:\n        \"\"\"\n        Asynchronously query vector store.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call query synchronously.\n        \"\"\"\n        return self.query(query, **kwargs)\n\n    def persist(\n        self, persist_path: str, fs: Optional[fsspec.AbstractFileSystem] = None\n    ) -> None:\n        return None"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 87,
+    "end_line": 107,
+    "length": 21,
+    "content": "    @classmethod\n    def from_vector_store(\n        cls,\n        vector_store: BasePydanticVectorStore,\n        embed_model: Optional[EmbedType] = None,\n        **kwargs: Any,\n    ) -> \"VectorStoreIndex\":\n        if not vector_store.stores_text:\n            raise ValueError(\n                \"Cannot initialize from a vector store that does not store text.\"\n            )\n\n        kwargs.pop(\"storage_context\", None)\n        storage_context = StorageContext.from_defaults(vector_store=vector_store)\n\n        return cls(\n            nodes=[],\n            embed_model=embed_model,\n            storage_context=storage_context,\n            **kwargs,\n        )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 328,
+    "end_line": 432,
+    "length": 105,
+    "content": "# TODO: Temp copy of VectorStore for pydantic, can't mix with runtime_checkable\nclass BasePydanticVectorStore(BaseComponent, ABC):\n    \"\"\"Abstract vector store protocol.\"\"\"\n\n    model_config = ConfigDict(arbitrary_types_allowed=True)\n    stores_text: bool\n    is_embedding_query: bool = True\n\n    @property\n    @abstractmethod\n    def client(self) -> Any:\n        \"\"\"Get client.\"\"\"\n\n    def get_nodes(\n        self,\n        node_ids: Optional[List[str]] = None,\n        filters: Optional[MetadataFilters] = None,\n    ) -> List[BaseNode]:\n        \"\"\"Get nodes from vector store.\"\"\"\n        raise NotImplementedError(\"get_nodes not implemented\")\n\n    async def aget_nodes(\n        self,\n        node_ids: Optional[List[str]] = None,\n        filters: Optional[MetadataFilters] = None,\n    ) -> List[BaseNode]:\n        \"\"\"Asynchronously get nodes from vector store.\"\"\"\n        return self.get_nodes(node_ids, filters)\n\n    @abstractmethod\n    def add(\n        self,\n        nodes: Sequence[BaseNode],\n        **kwargs: Any,\n    ) -> List[str]:\n        \"\"\"Add nodes to vector store.\"\"\"\n\n    async def async_add(\n        self,\n        nodes: Sequence[BaseNode],\n        **kwargs: Any,\n    ) -> List[str]:\n        \"\"\"\n        Asynchronously add nodes to vector store.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call add synchronously.\n        \"\"\"\n        return self.add(nodes, **kwargs)\n\n    @abstractmethod\n    def delete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:\n        \"\"\"\n        Delete nodes using with ref_doc_id.\"\"\"\n\n    async def adelete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:\n        \"\"\"\n        Delete nodes using with ref_doc_id.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call delete synchronously.\n        \"\"\"\n        self.delete(ref_doc_id, **delete_kwargs)\n\n    def delete_nodes(\n        self,\n        node_ids: Optional[List[str]] = None,\n        filters: Optional[MetadataFilters] = None,\n        **delete_kwargs: Any,\n    ) -> None:\n        \"\"\"Delete nodes from vector store.\"\"\"\n        raise NotImplementedError(\"delete_nodes not implemented\")\n\n    async def adelete_nodes(\n        self,\n        node_ids: Optional[List[str]] = None,\n        filters: Optional[MetadataFilters] = None,\n        **delete_kwargs: Any,\n    ) -> None:\n        \"\"\"Asynchronously delete nodes from vector store.\"\"\"\n        self.delete_nodes(node_ids, filters)\n\n    def clear(self) -> None:\n        \"\"\"Clear all nodes from configured vector store.\"\"\"\n        raise NotImplementedError(\"clear not implemented\")\n\n    async def aclear(self) -> None:\n        \"\"\"Asynchronously clear all nodes from configured vector store.\"\"\"\n        self.clear()\n\n    @abstractmethod\n    def query(self, query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult:\n        \"\"\"Query vector store.\"\"\"\n\n    async def aquery(\n        self, query: VectorStoreQuery, **kwargs: Any\n    ) -> VectorStoreQueryResult:\n        \"\"\"\n        Asynchronously query vector store.\n        NOTE: this is not implemented for all vector stores. If not implemented,\n        it will just call query synchronously.\n        \"\"\"\n        return self.query(query, **kwargs)\n\n    def persist(\n        self, persist_path: str, fs: Optional[fsspec.AbstractFileSystem] = None\n    ) -> None:\n        return None"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 233,
+    "end_line": 259,
+    "length": 27,
+    "content": "@dataclass\nclass VectorStoreQuery:\n    \"\"\"Vector store query.\"\"\"\n\n    query_embedding: Optional[List[float]] = None\n    similarity_top_k: int = 1\n    doc_ids: Optional[List[str]] = None\n    node_ids: Optional[List[str]] = None\n    query_str: Optional[str] = None\n    output_fields: Optional[List[str]] = None\n    embedding_field: Optional[str] = None\n\n    mode: VectorStoreQueryMode = VectorStoreQueryMode.DEFAULT\n\n    # NOTE: only for hybrid search (0 for bm25, 1 for vector search)\n    alpha: Optional[float] = None\n\n    # metadata filters\n    filters: Optional[MetadataFilters] = None\n\n    # only for mmr\n    mmr_threshold: Optional[float] = None\n\n    # NOTE: currently only used by postgres hybrid search\n    sparse_top_k: Optional[int] = None\n    # NOTE: return top k results from hybrid search. similarity_top_k is used for dense search top k\n    hybrid_top_k: Optional[int] = None"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/vector_stores/simple.py",
+    "filename": "simple.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/simple.py",
+    "start_line": 139,
+    "end_line": 170,
+    "length": 32,
+    "content": "class SimpleVectorStore(BasePydanticVectorStore):\n    \"\"\"Simple Vector Store.\n\n    In this vector store, embeddings are stored within a simple, in-memory dictionary.\n\n    Args:\n        simple_vector_store_data_dict (Optional[dict]): data dict\n            containing the embeddings and doc_ids. See SimpleVectorStoreData\n            for more details.\n    \"\"\"\n\n    stores_text: bool = False\n\n    data: SimpleVectorStoreData = Field(default_factory=SimpleVectorStoreData)\n    _fs: fsspec.AbstractFileSystem = PrivateAttr()\n\n    def __init__(\n        self,\n        data: Optional[SimpleVectorStoreData] = None,\n        fs: Optional[fsspec.AbstractFileSystem] = None,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Initialize params.\"\"\"\n        super().__init__(data=data or SimpleVectorStoreData())  # type: ignore[call-arg]\n        self._fs = fs or fsspec.filesystem(\"file\")"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/storage/storage_context.py",
+    "filename": "storage_context.py",
+    "relpath": "llama-index-core/llama_index/core/storage/storage_context.py",
+    "start_line": 58,
+    "end_line": 83,
+    "length": 26,
+    "content": "    @classmethod\n    def from_defaults(\n        cls,\n        docstore: Optional[BaseDocumentStore] = None,\n        index_store: Optional[BaseIndexStore] = None,\n        vector_store: Optional[BasePydanticVectorStore] = None,\n        image_store: Optional[BaseImageStore] = None,\n        graph_store: Optional[BaseGraphStore] = None,\n        persist_dir: Optional[str] = None,\n        fs: Optional[fsspec.filesystem] = None,\n    ) -> \"StorageContext\":\n        \"\"\"Create a StorageContext backed by the SimpleDocumentStore and SimpleIndexStore.\"\"\"\n        docstore = docstore or SimpleDocumentStore()\n        index_store = index_store or SimpleIndexStore()\n        # NOTE: set vector_store to None by default\n        if vector_store is None and persist_dir is not None:\n            try:\n                from llama_index.core.vector_stores import (\n                    SimpleVectorStore,\n                )  # noqa\n\n                vector_store = SimpleVectorStore()\n            except ImportError:\n                pass\n\n        # NOTE: user could explicitly pass in None for vector_store, so we should\n        # respect that\n        return cls(docstore, index_store, vector_store, image_store, graph_store)"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/vector_stores/__init__.py",
+    "filename": "__init__.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/__init__.py",
+    "start_line": 1,
+    "end_line": 27,
+    "length": 27,
+    "content": "\"\"\"Vector stores.\"\"\"\n\nfrom llama_index.core.vector_stores.simple import SimpleVectorStore\nfrom llama_index.core.vector_stores.types import (\n    ExactMatchFilter,\n    FilterCondition,\n    FilterOperator,\n    MetadataFilter,\n    MetadataFilters,\n    MetadataInfo,\n    VectorStoreQuery,\n    VectorStoreQueryResult,\n    VectorStoreInfo,\n)\n\n__all__ = [\n    \"VectorStoreQuery\",\n    \"VectorStoreQueryResult\",\n    \"MetadataFilters\",\n    \"MetadataFilter\",\n    \"MetadataInfo\",\n    \"ExactMatchFilter\",\n    \"FilterCondition\",\n    \"FilterOperator\",\n    \"SimpleVectorStore\",\n    \"VectorStoreInfo\",\n]"
+  }
+]

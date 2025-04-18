@@ -1,0 +1,136 @@
+Virtual Address Translation in xv6-riscv
+Virtual address translation in xv6 is implemented through several key components in the kernel code. Based on the provided code chunks, here's how virtual address translation is set up:
+
+1. Core Translation Functions
+The primary mechanism for mapping virtual addresses to physical addresses is in kernel/vm.c through the mappages() function:
+
+int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+{
+  uint64 a, last;
+  pte_t *pte;
+
+  // ... validation checks ...
+  
+  a = va;
+  last = va + size - PGSIZE;
+  for(;;){
+    if((pte = walk(pagetable, a, 1)) == 0)
+      return -1;
+    if(*pte & PTE_V)
+      panic("mappages: remap");
+    *pte = PA2PTE(pa) | perm | PTE_V;
+    if(a == last)
+      break;
+    a += PGSIZE;
+    pa += PGSIZE;
+  }
+  return 0;
+}
+This function:
+
+Takes a page table, virtual address range, physical address, and permissions
+Iterates through each page in the range
+Finds the appropriate page table entry using walk()
+Sets up the mapping by writing the physical address and permissions to the PTE
+2. Page Table Entry Lookup
+The walk() function locates the page table entry for a given virtual address:
+
+pte_t *walk(pagetable_t pagetable, uint64 va, int alloc)
+{
+  // ... validation ...
+
+  for(int level = 2; level > 0; level--) {
+    pte_t *pte = &pagetable[PX(level, va)];
+    if(*pte & PTE_V) {
+      pagetable = (pagetable_t)PTE2PA(*pte);
+    } else {
+      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
+        return 0;
+      memset(pagetable, 0, PGSIZE);
+      *pte = PA2PTE(pagetable) | PTE_V;
+    }
+  }
+  return &pagetable[PX(0, va)];
+}
+This function:
+
+Traverses the 3-level page table hierarchy
+Creates intermediate page tables if needed (when alloc=1)
+Returns a pointer to the final PTE corresponding to the virtual address
+3. Kernel Page Table Setup
+The kernel page table is initialized in kvminit() which calls kvmmake():
+
+pagetable_t kvmmake(void)
+{
+  pagetable_t kpgtbl;
+  kpgtbl = (pagetable_t) kalloc();
+  memset(kpgtbl, 0, PGSIZE);
+
+  // Map various memory regions
+  kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+  kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+  // ... more mappings ...
+  kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  
+  return kpgtbl;
+}
+This function:
+
+Creates the initial kernel page table
+Maps device registers, kernel text, kernel data, and the trampoline code
+Uses identity mapping for most of physical memory (virtual address = physical address)
+4. Enabling the Page Table
+After setting up the page table, it needs to be activated in hardware:
+
+void kvminithart()
+{
+  // wait for any previous writes to the page table memory to finish.
+  sfence_vma();
+
+  w_satp(MAKE_SATP(kernel_pagetable));
+
+  // flush stale entries from the TLB.
+  sfence_vma();
+}
+This function:
+
+Uses w_satp() to write to the RISC-V satp register, which tells the CPU which page table to use
+Calls sfence_vma() to flush the TLB before and after changing the page table
+5. Page Table Switching
+During context switches between kernel and user space, page tables are switched in the trampoline code:
+
+# switch to the user page table.
+sfence.vma zero, zero
+csrw satp, a0
+sfence.vma zero, zero
+And during trap handling:
+
+// tell trampoline.S the user page table to switch to.
+uint64 satp = MAKE_SATP(p->pagetable);
+
+// jump to userret in trampoline.S at the top of memory, which 
+// switches to the user page table, restores user registers,
+// and switches to user mode with sret.
+uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
+((void (*)(uint64))trampoline_userret)(satp);
+6. RISC-V Page Table Structure
+The RISC-V Sv39 page table scheme is described in the code:
+
+// The risc-v Sv39 scheme has three levels of page-table pages.
+// A page-table page contains 512 64-bit PTEs.
+// A 64-bit virtual address is split into five fields:
+//   39..63 -- must be zero.
+//   30..38 -- 9 bits of level-2 index.
+//   21..29 -- 9 bits of level-1 index.
+//   12..20 -- 9 bits of level-0 index.
+//    0..11 -- 12 bits of byte offset within the page.
+This is implemented with macros for extracting the indices:
+
+#define PX(level, va) ((((uint64) (va)) >> PXSHIFT(level)) & PXMASK)
+In summary, virtual address translation in xv6-riscv is set up through:
+
+The creation of page tables
+Mapping of virtual to physical addresses using mappages()
+Activation of page tables using the hardware satp register
+Three-level page table traversal performed by the walk() function
+Context-dependent page table switching in trap handling and system calls

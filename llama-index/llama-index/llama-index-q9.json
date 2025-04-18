@@ -1,0 +1,47 @@
+[
+  {
+    "filepath": "llama-datasets/mini_esg_bench/llamaindex_baseline.py",
+    "filename": "llamaindex_baseline.py",
+    "relpath": "llama-datasets/mini_esg_bench/llamaindex_baseline.py",
+    "start_line": 12,
+    "end_line": 14,
+    "length": 3,
+    "content": "    # BUILD BASIC RAG PIPELINE\n    index = VectorStoreIndex.from_documents(documents=documents)\n    query_engine = index.as_query_engine()"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/readers/string_iterable.py",
+    "filename": "string_iterable.py",
+    "relpath": "llama-index-core/llama_index/core/readers/string_iterable.py",
+    "start_line": 15,
+    "end_line": 24,
+    "length": 10,
+    "content": "            from llama_index.core.legacy import StringIterableReader, TreeIndex\n\n            documents = StringIterableReader().load_data(\n                texts=[\"I went to the store\", \"I bought an apple\"]\n            )\n            index = TreeIndex.from_documents(documents)\n            query_engine = index.as_query_engine()\n            query_engine.query(\"what did I buy?\")\n\n            # response should be something like \"You bought an apple.\""
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/base.py",
+    "start_line": 85,
+    "end_line": 99,
+    "length": 15,
+    "content": "    @classmethod\n    def from_documents(\n        cls: Type[IndexType],\n        documents: Sequence[Document],\n        storage_context: Optional[StorageContext] = None,\n        show_progress: bool = False,\n        callback_manager: Optional[CallbackManager] = None,\n        transformations: Optional[List[TransformComponent]] = None,\n        **kwargs: Any,\n    ) -> IndexType:\n        \"\"\"Create index from documents.\n\n        Args:\n            documents (Optional[Sequence[BaseDocument]]): List of documents to\n                build the index from."
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/base.py",
+    "start_line": 360,
+    "end_line": 384,
+    "length": 25,
+    "content": "    def as_query_engine(\n        self, llm: Optional[LLMType] = None, **kwargs: Any\n    ) -> BaseQueryEngine:\n        \"\"\"Convert the index to a query engine.\n\n        Calls `index.as_retriever(**kwargs)` to get the retriever and then wraps it in a\n        `RetrieverQueryEngine.from_args(retriever, **kwrags)` call.\n        \"\"\"\n        # NOTE: lazy import\n        from llama_index.core.query_engine.retriever_query_engine import (\n            RetrieverQueryEngine,\n        )\n\n        retriever = self.as_retriever(**kwargs)\n        llm = (\n            resolve_llm(llm, callback_manager=self._callback_manager)\n            if llm\n            else Settings.llm\n        )\n\n        return RetrieverQueryEngine.from_args(\n            retriever,\n            llm=llm,\n            **kwargs,\n        )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 34,
+    "end_line": 44,
+    "length": 11,
+    "content": "class VectorStoreIndex(BaseIndex[IndexDict]):\n    \"\"\"\n    Vector Store Index.\n\n    Args:\n        use_async (bool): Whether to use asynchronous calls. Defaults to False.\n        show_progress (bool): Whether to show tqdm progress bars. Defaults to False.\n        store_nodes_override (bool): set to True to always store Node objects in index\n            store and document store even if vector store keeps text. Defaults to False\n    \"\"\"\n"
+  }
+]

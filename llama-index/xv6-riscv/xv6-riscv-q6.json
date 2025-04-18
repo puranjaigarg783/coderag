@@ -1,0 +1,101 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 179,
+    "end_line": 217,
+    "length": 39,
+    "content": "// check if it's an external interrupt or software interrupt,\n// and handle it.\n// returns 2 if timer interrupt,\n// 1 if other device,\n// 0 if not recognized.\nint\ndevintr()\n{\n  uint64 scause = r_scause();\n\n  if(scause == 0x8000000000000009L){\n    // this is a supervisor external interrupt, via PLIC.\n\n    // irq indicates which device interrupted.\n    int irq = plic_claim();\n\n    if(irq == UART0_IRQ){\n      uartintr();\n    } else if(irq == VIRTIO0_IRQ){\n      virtio_disk_intr();\n    } else if(irq){\n      printf(\"unexpected interrupt irq=%d\\n\", irq);\n    }\n\n    // the PLIC allows each device to raise at most one\n    // interrupt at a time; tell the PLIC the device is\n    // now allowed to interrupt again.\n    if(irq)\n      plic_complete(irq);\n\n    return 1;\n  } else if(scause == 0x8000000000000005L){\n    // timer interrupt.\n    clockintr();\n    return 2;\n  } else {\n    return 0;\n  }\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 163,
+    "end_line": 177,
+    "length": 15,
+    "content": "void\nclockintr()\n{\n  if(cpuid() == 0){\n    acquire(&tickslock);\n    ticks++;\n    wakeup(&ticks);\n    release(&tickslock);\n  }\n\n  // ask for the next timer interrupt. this also clears\n  // the interrupt request. 1000000 is about a tenth\n  // of a second.\n  w_stimecmp(r_time() + 1000000);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/plic.c",
+    "filename": "plic.c",
+    "relpath": "kernel/plic.c",
+    "start_line": 7,
+    "end_line": 47,
+    "length": 41,
+    "content": "//\n// the riscv Platform Level Interrupt Controller (PLIC).\n//\n\nvoid\nplicinit(void)\n{\n  // set desired IRQ priorities non-zero (otherwise disabled).\n  *(uint32*)(PLIC + UART0_IRQ*4) = 1;\n  *(uint32*)(PLIC + VIRTIO0_IRQ*4) = 1;\n}\n\nvoid\nplicinithart(void)\n{\n  int hart = cpuid();\n  \n  // set enable bits for this hart's S-mode\n  // for the uart and virtio disk.\n  *(uint32*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ);\n\n  // set this hart's S-mode priority threshold to 0.\n  *(uint32*)PLIC_SPRIORITY(hart) = 0;\n}\n\n// ask the PLIC what interrupt we should serve.\nint\nplic_claim(void)\n{\n  int hart = cpuid();\n  int irq = *(uint32*)PLIC_SCLAIM(hart);\n  return irq;\n}\n\n// tell the PLIC we've served this IRQ.\nvoid\nplic_complete(int irq)\n{\n  int hart = cpuid();\n  *(uint32*)PLIC_SCLAIM(hart) = irq;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/uart.c",
+    "filename": "uart.c",
+    "relpath": "kernel/uart.c",
+    "start_line": 173,
+    "end_line": 191,
+    "length": 19,
+    "content": "// handle a uart interrupt, raised because input has\n// arrived, or the uart is ready for more output, or\n// both. called from devintr().\nvoid\nuartintr(void)\n{\n  // read and process incoming characters.\n  while(1){\n    int c = uartgetc();\n    if(c == -1)\n      break;\n    consoleintr(c);\n  }\n\n  // send buffered characters.\n  acquire(&uart_tx_lock);\n  uartstart();\n  release(&uart_tx_lock);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 132,
+    "end_line": 161,
+    "length": 30,
+    "content": "// interrupts and exceptions from kernel code go here via kernelvec,\n// on whatever the current kernel stack is.\nvoid \nkerneltrap()\n{\n  int which_dev = 0;\n  uint64 sepc = r_sepc();\n  uint64 sstatus = r_sstatus();\n  uint64 scause = r_scause();\n  \n  if((sstatus & SSTATUS_SPP) == 0)\n    panic(\"kerneltrap: not from supervisor mode\");\n  if(intr_get() != 0)\n    panic(\"kerneltrap: interrupts enabled\");\n\n  if((which_dev = devintr()) == 0){\n    // interrupt or trap from an unknown source\n    printf(\"scause=0x%lx sepc=0x%lx stval=0x%lx\\n\", scause, r_sepc(), r_stval());\n    panic(\"kerneltrap\");\n  }\n\n  // give up the CPU if this is a timer interrupt.\n  if(which_dev == 2 && myproc() != 0)\n    yield();\n\n  // the yield() may have caused some traps to occur,\n  // so restore trap registers for use by kernelvec.S's sepc instruction.\n  w_sepc(sepc);\n  w_sstatus(sstatus);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/trap.c",
+    "filename": "trap.c",
+    "relpath": "kernel/trap.c",
+    "start_line": 25,
+    "end_line": 30,
+    "length": 6,
+    "content": "// set up to take exceptions and traps while in the kernel.\nvoid\ntrapinithart(void)\n{\n  w_stvec((uint64)kernelvec);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/kernelvec.S",
+    "filename": "kernelvec.S",
+    "relpath": "kernel/kernelvec.S",
+    "start_line": 1,
+    "end_line": 39,
+    "length": 39,
+    "content": "        #\n        # interrupts and exceptions while in supervisor\n        # mode come here.\n        #\n        # the current stack is a kernel stack.\n        # push registers, call kerneltrap().\n        # when kerneltrap() returns, restore registers, return.\n        #\n.globl kerneltrap\n.globl kernelvec\n.align 4\nkernelvec:\n        # make room to save registers.\n        addi sp, sp, -256\n\n        # save caller-saved registers.\n        sd ra, 0(sp)\n        sd sp, 8(sp)\n        sd gp, 16(sp)\n        sd tp, 24(sp)\n        sd t0, 32(sp)\n        sd t1, 40(sp)\n        sd t2, 48(sp)\n        sd a0, 72(sp)\n        sd a1, 80(sp)\n        sd a2, 88(sp)\n        sd a3, 96(sp)\n        sd a4, 104(sp)\n        sd a5, 112(sp)\n        sd a6, 120(sp)\n        sd a7, 128(sp)\n        sd t3, 216(sp)\n        sd t4, 224(sp)\n        sd t5, 232(sp)\n        sd t6, 240(sp)\n\n        # call the C trap handler in trap.c\n        call kerneltrap"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/main.c",
+    "filename": "main.c",
+    "relpath": "kernel/main.c",
+    "start_line": 13,
+    "end_line": 29,
+    "length": 17,
+    "content": "  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/riscv.h",
+    "filename": "riscv.h",
+    "relpath": "kernel/riscv.h",
+    "start_line": 80,
+    "end_line": 96,
+    "length": 17,
+    "content": "// Supervisor Interrupt Enable\n#define SIE_SEIE (1L << 9) // external\n#define SIE_STIE (1L << 5) // timer\n#define SIE_SSIE (1L << 1) // software\nstatic inline uint64\nr_sie()\n{\n  uint64 x;\n  asm volatile(\"csrr %0, sie\" : \"=r\" (x) );\n  return x;\n}\n\nstatic inline void \nw_sie(uint64 x)\n{\n  asm volatile(\"csrw sie, %0\" : : \"r\" (x));\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/memlayout.h",
+    "filename": "memlayout.h",
+    "relpath": "kernel/memlayout.h",
+    "start_line": 1,
+    "end_line": 35,
+    "length": 35,
+    "content": "// Physical memory layout\n\n// qemu -machine virt is set up like this,\n// based on qemu's hw/riscv/virt.c:\n//\n// 00001000 -- boot ROM, provided by qemu\n// 02000000 -- CLINT\n// 0C000000 -- PLIC\n// 10000000 -- uart0 \n// 10001000 -- virtio disk \n// 80000000 -- boot ROM jumps here in machine mode\n//             -kernel loads the kernel here\n// unused RAM after 80000000.\n\n// the kernel uses physical memory thus:\n// 80000000 -- entry.S, then kernel text and data\n// end -- start of kernel page allocation area\n// PHYSTOP -- end RAM used by the kernel\n\n// qemu puts UART registers here in physical memory.\n#define UART0 0x10000000L\n#define UART0_IRQ 10\n\n// virtio mmio interface\n#define VIRTIO0 0x10001000\n#define VIRTIO0_IRQ 1\n\n// qemu puts platform-level interrupt controller (PLIC) here.\n#define PLIC 0x0c000000L\n#define PLIC_PRIORITY (PLIC + 0x0)\n#define PLIC_PENDING (PLIC + 0x1000)\n#define PLIC_SENABLE(hart) (PLIC + 0x2080 + (hart)*0x100)\n#define PLIC_SPRIORITY(hart) (PLIC + 0x201000 + (hart)*0x2000)\n#define PLIC_SCLAIM(hart) (PLIC + 0x201004 + (hart)*0x2000)"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/uart.c",
+    "filename": "uart.c",
+    "relpath": "kernel/uart.c",
+    "start_line": 1,
+    "end_line": 78,
+    "length": 78,
+    "content": "//\n// low-level driver routines for 16550a UART.\n//\n\n#include \"types.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"riscv.h\"\n#include \"spinlock.h\"\n#include \"proc.h\"\n#include \"defs.h\"\n\n// the UART control registers are memory-mapped\n// at address UART0. this macro returns the\n// address of one of the registers.\n#define Reg(reg) ((volatile unsigned char *)(UART0 + (reg)))\n\n// the UART control registers.\n// some have different meanings for\n// read vs write.\n// see http://byterunner.com/16550.html\n#define RHR 0                 // receive holding register (for input bytes)\n#define THR 0                 // transmit holding register (for output bytes)\n#define IER 1                 // interrupt enable register\n#define IER_RX_ENABLE (1<<0)\n#define IER_TX_ENABLE (1<<1)\n#define FCR 2                 // FIFO control register\n#define FCR_FIFO_ENABLE (1<<0)\n#define FCR_FIFO_CLEAR (3<<1) // clear the content of the two FIFOs\n#define ISR 2                 // interrupt status register\n#define LCR 3                 // line control register\n#define LCR_EIGHT_BITS (3<<0)\n#define LCR_BAUD_LATCH (1<<7) // special mode to set baud rate\n#define LSR 5                 // line status register\n#define LSR_RX_READY (1<<0)   // input is waiting to be read from RHR\n#define LSR_TX_IDLE (1<<5)    // THR can accept another character to send\n\n#define ReadReg(reg) (*(Reg(reg)))\n#define WriteReg(reg, v) (*(Reg(reg)) = (v))\n\n// the transmit output buffer.\nstruct spinlock uart_tx_lock;\n#define UART_TX_BUF_SIZE 32\nchar uart_tx_buf[UART_TX_BUF_SIZE];\nuint64 uart_tx_w; // write next to uart_tx_buf[uart_tx_w % UART_TX_BUF_SIZE]\nuint64 uart_tx_r; // read next from uart_tx_buf[uart_tx_r % UART_TX_BUF_SIZE]\n\nextern volatile int panicked; // from printf.c\n\nvoid uartstart();\n\nvoid\nuartinit(void)\n{\n  // disable interrupts.\n  WriteReg(IER, 0x00);\n\n  // special mode to set baud rate.\n  WriteReg(LCR, LCR_BAUD_LATCH);\n\n  // LSB for baud rate of 38.4K.\n  WriteReg(0, 0x03);\n\n  // MSB for baud rate of 38.4K.\n  WriteReg(1, 0x00);\n\n  // leave set-baud mode,\n  // and set word length to 8 bits, no parity.\n  WriteReg(LCR, LCR_EIGHT_BITS);\n\n  // reset and enable FIFOs.\n  WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);\n\n  // enable transmit and receive interrupts.\n  WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);\n\n  initlock(&uart_tx_lock, \"uart\");\n}"
+  }
+]

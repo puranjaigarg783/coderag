@@ -1,0 +1,83 @@
+[
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/interface.py",
+    "filename": "interface.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/interface.py",
+    "start_line": 1,
+    "end_line": 50,
+    "length": 50,
+    "content": "\"\"\"Node parser interface.\"\"\"\n\nfrom abc import ABC, abstractmethod\nfrom typing import Any, Callable, Dict, List, Sequence, Optional\nfrom typing_extensions import Annotated\n\nfrom llama_index.core.bridge.pydantic import (\n    Field,\n    WithJsonSchema,\n    BeforeValidator,\n    ConfigDict,\n    PlainSerializer,\n)\nfrom llama_index.core.callbacks import CallbackManager, CBEventType, EventPayload\nfrom llama_index.core.node_parser.node_utils import (\n    build_nodes_from_splits,\n    default_id_func,\n)\nfrom llama_index.core.schema import (\n    BaseNode,\n    Document,\n    MetadataMode,\n    NodeRelationship,\n    TextNode,\n    TransformComponent,\n)\nfrom llama_index.core.utils import get_tqdm_iterable\n\n\ndef _validate_id_func(v: Any) -> Any:\n    if v is None:\n        return default_id_func\n    return v\n\n\ndef _serialize_id_func(f: Callable) -> Any:\n    return {\"id_func_name\": f\"{f.__name__}\", \"title\": \"id_func\"}\n\n\nIdFuncCallable = Annotated[\n    Callable,\n    Field(validate_default=True),\n    BeforeValidator(_validate_id_func),\n    WithJsonSchema({\"type\": \"string\"}, mode=\"serialization\"),\n    WithJsonSchema({\"type\": \"string\"}, mode=\"validation\"),\n    PlainSerializer(_serialize_id_func),\n]\n\n\nclass NodeParser(TransformComponent, ABC):\n    \"\"\"Base interface for node parser.\"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/interface.py",
+    "filename": "interface.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/interface.py",
+    "start_line": 147,
+    "end_line": 170,
+    "length": 24,
+    "content": "    def get_nodes_from_documents(\n        self,\n        documents: Sequence[Document],\n        show_progress: bool = False,\n        **kwargs: Any,\n    ) -> List[BaseNode]:\n        \"\"\"Parse documents into nodes.\n\n        Args:\n            documents (Sequence[Document]): documents to parse\n            show_progress (bool): whether to show progress bar\n\n        \"\"\"\n        doc_id_to_document = {doc.id_: doc for doc in documents}\n\n        with self.callback_manager.event(\n            CBEventType.NODE_PARSING, payload={EventPayload.DOCUMENTS: documents}\n        ) as event:\n            nodes = self._parse_nodes(documents, show_progress=show_progress, **kwargs)\n            nodes = self._postprocess_parsed_nodes(nodes, doc_id_to_document)\n\n            event.on_end({EventPayload.NODES: nodes})\n\n        return nodes"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/interface.py",
+    "filename": "interface.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/interface.py",
+    "start_line": 199,
+    "end_line": 220,
+    "length": 22,
+    "content": "class TextSplitter(NodeParser):\n    @abstractmethod\n    def split_text(self, text: str) -> List[str]:\n        ...\n\n    def split_texts(self, texts: List[str]) -> List[str]:\n        nested_texts = [self.split_text(text) for text in texts]\n        return [item for sublist in nested_texts for item in sublist]\n\n    def _parse_nodes(\n        self, nodes: Sequence[BaseNode], show_progress: bool = False, **kwargs: Any\n    ) -> List[BaseNode]:\n        all_nodes: List[BaseNode] = []\n        nodes_with_progress = get_tqdm_iterable(nodes, show_progress, \"Parsing nodes\")\n        for node in nodes_with_progress:\n            splits = self.split_text(node.get_content())\n\n            all_nodes.extend(\n                build_nodes_from_splits(splits, node, id_func=self.id_func)\n            )\n\n        return all_nodes"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/text_splitter/__init__.py",
+    "filename": "__init__.py",
+    "relpath": "llama-index-core/llama_index/core/text_splitter/__init__.py",
+    "start_line": 1,
+    "end_line": 12,
+    "length": 12,
+    "content": "# TODO: Deprecated import support for old text splitters\nfrom llama_index.core.node_parser.text.code import CodeSplitter\nfrom llama_index.core.node_parser.text.sentence import (\n    SentenceSplitter,\n)\nfrom llama_index.core.node_parser.text.token import TokenTextSplitter\n\n__all__ = [\n    \"SentenceSplitter\",\n    \"TokenTextSplitter\",\n    \"CodeSplitter\",\n]"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/text/token.py",
+    "filename": "token.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/text/token.py",
+    "start_line": 1,
+    "end_line": 44,
+    "length": 44,
+    "content": "\"\"\"Token splitter.\"\"\"\n\nimport logging\nfrom typing import Callable, List, Optional\n\nfrom llama_index.core.bridge.pydantic import Field, PrivateAttr\nfrom llama_index.core.callbacks.base import CallbackManager\nfrom llama_index.core.callbacks.schema import CBEventType, EventPayload\nfrom llama_index.core.constants import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE\nfrom llama_index.core.node_parser.interface import MetadataAwareTextSplitter\nfrom llama_index.core.node_parser.node_utils import default_id_func\nfrom llama_index.core.node_parser.text.utils import split_by_char, split_by_sep\nfrom llama_index.core.schema import Document\nfrom llama_index.core.utils import get_tokenizer\n\n_logger = logging.getLogger(__name__)\n\n# NOTE: this is the number of tokens we reserve for metadata formatting\nDEFAULT_METADATA_FORMAT_LEN = 2\n\n\nclass TokenTextSplitter(MetadataAwareTextSplitter):\n    \"\"\"Implementation of splitting text that looks at word tokens.\"\"\"\n\n    chunk_size: int = Field(\n        default=DEFAULT_CHUNK_SIZE,\n        description=\"The token chunk size for each chunk.\",\n        gt=0,\n    )\n    chunk_overlap: int = Field(\n        default=DEFAULT_CHUNK_OVERLAP,\n        description=\"The token overlap of each chunk when splitting.\",\n        ge=0,\n    )\n    separator: str = Field(\n        default=\" \", description=\"Default separator for splitting into words\"\n    )\n    backup_separators: List = Field(\n        default_factory=list, description=\"Additional separators for splitting.\"\n    )\n\n    _tokenizer: Callable = PrivateAttr()\n    _split_fns: List[Callable] = PrivateAttr()"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/text/token.py",
+    "filename": "token.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/text/token.py",
+    "start_line": 128,
+    "end_line": 148,
+    "length": 21,
+    "content": "    def split_text(self, text: str) -> List[str]:\n        \"\"\"Split text into chunks.\"\"\"\n        return self._split_text(text, chunk_size=self.chunk_size)\n\n    def _split_text(self, text: str, chunk_size: int) -> List[str]:\n        \"\"\"Split text into chunks up to chunk_size.\"\"\"\n        if text == \"\":\n            return [text]\n\n        with self.callback_manager.event(\n            CBEventType.CHUNKING, payload={EventPayload.CHUNKS: [text]}\n        ) as event:\n            splits = self._split(text, chunk_size)\n            chunks = self._merge(splits, chunk_size)\n\n            event.on_end(\n                payload={EventPayload.CHUNKS: chunks},\n            )\n\n        return chunks"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/text/sentence.py",
+    "filename": "sentence.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/text/sentence.py",
+    "start_line": 1,
+    "end_line": 40,
+    "length": 40,
+    "content": "\"\"\"Sentence splitter.\"\"\"\n\nfrom dataclasses import dataclass\nfrom typing import Callable, List, Optional, Tuple\n\nfrom llama_index.core.bridge.pydantic import Field, PrivateAttr\nfrom llama_index.core.callbacks.base import CallbackManager\nfrom llama_index.core.callbacks.schema import CBEventType, EventPayload\nfrom llama_index.core.constants import DEFAULT_CHUNK_SIZE\nfrom llama_index.core.node_parser.interface import (\n    MetadataAwareTextSplitter,\n)\nfrom llama_index.core.node_parser.node_utils import default_id_func\nfrom llama_index.core.node_parser.text.utils import (\n    split_by_char,\n    split_by_regex,\n    split_by_sentence_tokenizer,\n    split_by_sep,\n)\nfrom llama_index.core.utils import get_tokenizer\n\nSENTENCE_CHUNK_OVERLAP = 200\nCHUNKING_REGEX = \"[^,.;。？！]+[,.;。？！]?\"\nDEFAULT_PARAGRAPH_SEP = \"\\n\\n\\n\"\n\n\n@dataclass\nclass _Split:\n    text: str  # the split text\n    is_sentence: bool  # save whether this is a full sentence\n    token_size: int  # token length of split text\n\n\nclass SentenceSplitter(MetadataAwareTextSplitter):\n    \"\"\"Parse text with a preference for complete sentences.\n\n    In general, this class tries to keep sentences and paragraphs together. Therefore\n    compared to the original TokenTextSplitter, there are less likely to be\n    hanging sentences or parts of sentences at the end of the node chunk.\n    \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/text/code.py",
+    "filename": "code.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/text/code.py",
+    "start_line": 1,
+    "end_line": 23,
+    "length": 23,
+    "content": "\"\"\"Code splitter.\"\"\"\n\nfrom typing import Any, Callable, List, Optional\n\nfrom llama_index.core.bridge.pydantic import Field, PrivateAttr\nfrom llama_index.core.callbacks.base import CallbackManager\nfrom llama_index.core.callbacks.schema import CBEventType, EventPayload\nfrom llama_index.core.node_parser.interface import TextSplitter\nfrom llama_index.core.node_parser.node_utils import default_id_func\nfrom llama_index.core.schema import Document\n\nDEFAULT_CHUNK_LINES = 40\nDEFAULT_LINES_OVERLAP = 15\nDEFAULT_MAX_CHARS = 1500\n\n\nclass CodeSplitter(TextSplitter):\n    \"\"\"Split code using a AST parser.\n\n    Thank you to Kevin Lu / SweepAI for suggesting this elegant code splitting solution.\n    https://docs.sweep.dev/blogs/chunking-2m-files\n    \"\"\""
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/node_parser/text/code.py",
+    "filename": "code.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/text/code.py",
+    "start_line": 142,
+    "end_line": 164,
+    "length": 23,
+    "content": "    def split_text(self, text: str) -> List[str]:\n        \"\"\"Split incoming code and return chunks using the AST.\"\"\"\n        with self.callback_manager.event(\n            CBEventType.CHUNKING, payload={EventPayload.CHUNKS: [text]}\n        ) as event:\n            tree = self._parser.parse(bytes(text, \"utf-8\"))\n\n            if (\n                not tree.root_node.children\n                or tree.root_node.children[0].type != \"ERROR\"\n            ):\n                chunks = [\n                    chunk.strip() for chunk in self._chunk_node(tree.root_node, text)\n                ]\n                event.on_end(\n                    payload={EventPayload.CHUNKS: chunks},\n                )\n\n                return chunks\n            else:\n                raise ValueError(f\"Could not parse code with language {self.language}.\")\n\n        # TODO: set up auto-language detection using something like https://github.com/yoeo/guesslang."
+  }
+]

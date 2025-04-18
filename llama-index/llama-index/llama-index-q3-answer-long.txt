@@ -1,0 +1,93 @@
+Plugging in a Custom Vector Database into LlamaIndex's Indexing
+To integrate a custom vector database (vector store) into LlamaIndex's indexing system, you need to implement the appropriate interface and then connect it to LlamaIndex's indexing infrastructure. Based on the provided code chunks, here's how to accomplish this:
+
+Step 1: Implement the Vector Store Interface
+Your custom vector database needs to implement the BasePydanticVectorStore abstract base class from llama_index.core.vector_stores.types. This class defines the interface that all vector stores must implement:
+
+class BasePydanticVectorStore(BaseComponent, ABC):
+    stores_text: bool
+    is_embedding_query: bool = True
+    
+    @property
+    @abstractmethod
+    def client(self) -> Any:
+        """Get client."""
+        
+    @abstractmethod
+    def add(
+        self,
+        nodes: Sequence[BaseNode],
+        **kwargs: Any,
+    ) -> List[str]:
+        """Add nodes to vector store."""
+        
+    @abstractmethod
+    def delete(self, ref_doc_id: str, **delete_kwargs: Any) -> None:
+        """Delete nodes using with ref_doc_id."""
+        
+    @abstractmethod
+    def query(self, query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult:
+        """Query vector store."""
+Step 2: Connect Your Custom Vector Store to LlamaIndex
+Once you've implemented your custom vector store, you can connect it to LlamaIndex in two primary ways:
+
+Option 1: Using StorageContext
+From the file storage_context.py, you can provide your vector store when creating a StorageContext:
+
+from llama_index.core.storage import StorageContext
+
+# Create an instance of your custom vector store
+my_custom_vector_store = MyCustomVectorStore()
+
+# Create a storage context with your custom vector store
+storage_context = StorageContext.from_defaults(
+    vector_store=my_custom_vector_store
+)
+
+# Use this storage context when creating an index
+index = VectorStoreIndex(
+    nodes=[],  # Your document nodes
+    storage_context=storage_context
+)
+Option 2: Using VectorStoreIndex.from_vector_store
+From the file base.py in llama-index-core/llama_index/core/indices/vector_store/, you can use the from_vector_store class method to create an index directly from your vector store:
+
+from llama_index.core.indices.vector_store import VectorStoreIndex
+
+# Create an instance of your custom vector store
+my_custom_vector_store = MyCustomVectorStore()
+
+# Create an index directly from your vector store
+index = VectorStoreIndex.from_vector_store(
+    vector_store=my_custom_vector_store,
+    embed_model=my_embed_model  # Optional
+)
+Note that according to base.py, the vector store must have stores_text=True for this method to work:
+
+if not vector_store.stores_text:
+    raise ValueError(
+        "Cannot initialize from a vector store that does not store text."
+    )
+Example: SimpleVectorStore as a Reference
+You can use the provided SimpleVectorStore class in simple.py as a reference implementation:
+
+class SimpleVectorStore(BasePydanticVectorStore):
+    """Simple Vector Store.
+    In this vector store, embeddings are stored within a simple, in-memory dictionary.
+    """
+    stores_text: bool = False
+    data: SimpleVectorStoreData = Field(default_factory=SimpleVectorStoreData)
+    _fs: fsspec.AbstractFileSystem = PrivateAttr()
+    
+    # Other methods implementation...
+Key Considerations for Implementation
+When implementing your custom vector store, pay attention to:
+
+The stores_text flag: Set to True if your vector store maintains the text of nodes; otherwise, set to False
+The query method: It must handle a VectorStoreQuery object (from types.py), which includes parameters like:
+query_embedding: The embedding vector for similarity search
+similarity_top_k: Number of top results to return
+filters: For metadata filtering
+Asynchronous methods: You can optionally implement async versions of methods (async_add, aquery, etc.)
+Persistence: Implement the persist method if your vector store supports persistence
+By correctly implementing these interfaces and connecting your custom vector store to LlamaIndex, you can leverage LlamaIndex's indexing capabilities with your own specialized vector database.

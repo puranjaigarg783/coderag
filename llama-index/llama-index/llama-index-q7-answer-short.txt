@@ -1,0 +1,7 @@
+LlamaIndex supports vector similarity search, keyword/sparse search, and hybrid combinations, depending on the index and retriever. For instance, the VectorIndexRetriever (for VectorStoreIndex) has a parameter vector_store_query_mode to toggle between modes – e.g. VectorStoreQueryMode.DEFAULT (dense cosine similarity), BASIC, HYBRID, etc. It also accepts an alpha parameter to weight hybrid search (combining sparse and dense scores)​
+docs.llamaindex.ai
+. Additionally, retrievers accept filters (MetadataFilters) to restrict results by metadata​
+docs.llamaindex.ai
+. In the code, when building the query, it populates a VectorStoreQuery object with the query embedding, similarity_top_k, any doc_ids restriction, the mode, alpha, and filters​
+docs.llamaindex.ai
+before hitting the vector store. Other index types have their own retrievers (e.g. a list index can retrieve by traversal or by embeddings). These modular strategies let you choose pure vector search, filtered search, or hybrid (sparse+dense) retrieval as needed.

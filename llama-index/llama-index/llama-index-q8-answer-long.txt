@@ -1,0 +1,91 @@
+Metadata Handling in LlamaIndex
+Based on the provided code snippets, here's how LlamaIndex handles metadata for nodes and filtering:
+
+Node Metadata Storage
+In schema.py, nodes store metadata as a dictionary:
+
+metadata: Dict[str, Any] = Field(
+    default_factory=dict,
+    description="A flat dictionary of metadata fields",
+    alias="extra_info",
+)
+This metadata serves three purposes:
+
+It can be injected as part of the text shown to LLMs as context
+It can be included in the text for generating embeddings
+It can be used by vector databases for metadata filtering
+Nodes can selectively exclude metadata fields in different contexts:
+
+excluded_embed_metadata_keys: List[str] = Field(
+    default_factory=list,
+    description="Metadata keys that are excluded from text for the embed model.",
+)
+excluded_llm_metadata_keys: List[str] = Field(
+    default_factory=list,
+    description="Metadata keys that are excluded from text for the LLM.",
+)
+The get_metadata_str() method in schema.py generates a string representation of the metadata based on the specified mode (ALL, LLM, EMBED, or NONE), respecting the exclusion lists.
+
+Filtering Search Results by Metadata
+Yes, LlamaIndex provides comprehensive metadata filtering capabilities:
+
+Filter Components
+MetadataFilters class (in vector_stores/types.py):
+
+class MetadataFilters(BaseModel):
+    filters: List[Union[MetadataFilter, ExactMatchFilter, "MetadataFilters"]]
+    condition: Optional[FilterCondition] = FilterCondition.AND
+This allows complex combinations of filters with AND/OR logic.
+
+MetadataFilter class:
+
+class MetadataFilter(BaseModel):
+    key: str
+    value: Optional[Union[StrictInt, StrictFloat, StrictStr, List[StrictStr], ...]]
+    operator: FilterOperator = FilterOperator.EQ
+This defines individual filter conditions.
+
+FilterOperator enum with extensive operators:
+
+class FilterOperator(str, Enum):
+    EQ = "=="          # Equal to
+    GT = ">"           # Greater than
+    LT = "<"           # Less than
+    NE = "!="          # Not equal to
+    GTE = ">="         # Greater than or equal to
+    LTE = "<="         # Less than or equal to
+    IN = "in"          # In array
+    NIN = "nin"        # Not in array
+    # And more operators for text matching, array operations, etc.
+Applying Filters in the Retrieval Pipeline
+The filters flow through the retrieval process:
+
+The VectorStoreRetriever in retriever.py accepts filters during initialization:
+
+def __init__(
+    self,
+    index: VectorStoreIndex,
+    # other params...
+    filters: Optional[MetadataFilters] = None,
+    # more params...
+) -> None:
+    # init code...
+    self._filters = filters
+These filters are then passed to the vector store query:
+
+def _build_vector_store_query(
+    self, query_bundle_with_embeddings: QueryBundle
+) -> VectorStoreQuery:
+    return VectorStoreQuery(
+        # other params...
+        filters=self._filters,
+        # more params...
+    )
+The VectorStoreQuery class includes a field for these filters:
+
+@dataclass
+class VectorStoreQuery:
+    # other fields...
+    filters: Optional[MetadataFilters] = None
+    # more fields...
+This architecture enables powerful and flexible metadata filtering that can be used to narrow down search results based on any metadata attributes attached to the nodes.

@@ -1,0 +1,21 @@
+Based on the provided code chunks from xv6-riscv, the function used to allocate a page of memory in the kernel is kalloc().
+
+The kalloc() function is defined in kernel/kalloc.c and its purpose is clearly described in the comments:
+
+// Allocate one 4096-byte page of physical memory.
+// Returns a pointer that the kernel can use.
+// Returns 0 if the memory cannot be allocated.
+Looking at the implementation, kalloc() works by:
+
+Acquiring a lock on the memory allocator structure (kmem)
+Taking the first free page from a linked list of free memory pages (kmem.freelist)
+Updating the free list to point to the next available page
+Releasing the lock
+Filling the allocated memory with junk values (value 5) to help catch use-after-free bugs
+Returning a pointer to the allocated page
+The function is used throughout the kernel for various memory allocation needs, as shown in the provided vm.c snippets, including:
+
+Creating kernel page tables
+Creating user page tables
+Allocating memory during user space growth
+The memory management system in xv6 uses a simple free-list approach where available physical memory pages are linked together in a list, with the kalloc() function removing pages from this list when needed and returning them to the caller.

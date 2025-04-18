@@ -1,0 +1,74 @@
+[
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/base.py",
+    "start_line": 85,
+    "end_line": 125,
+    "length": 41,
+    "content": "    @classmethod\n    def from_documents(\n        cls: Type[IndexType],\n        documents: Sequence[Document],\n        storage_context: Optional[StorageContext] = None,\n        show_progress: bool = False,\n        callback_manager: Optional[CallbackManager] = None,\n        transformations: Optional[List[TransformComponent]] = None,\n        **kwargs: Any,\n    ) -> IndexType:\n        \"\"\"Create index from documents.\n\n        Args:\n            documents (Optional[Sequence[BaseDocument]]): List of documents to\n                build the index from.\n\n        \"\"\"\n        storage_context = storage_context or StorageContext.from_defaults()\n        docstore = storage_context.docstore\n        callback_manager = callback_manager or Settings.callback_manager\n        transformations = transformations or Settings.transformations\n\n        with callback_manager.as_trace(\"index_construction\"):\n            for doc in documents:\n                docstore.set_document_hash(doc.get_doc_id(), doc.hash)\n\n            nodes = run_transformations(\n                documents,  # type: ignore\n                transformations,\n                show_progress=show_progress,\n                **kwargs,\n            )\n\n            return cls(\n                nodes=nodes,\n                storage_context=storage_context,\n                callback_manager=callback_manager,\n                show_progress=show_progress,\n                transformations=transformations,\n                **kwargs,\n            )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/base.py",
+    "start_line": 33,
+    "end_line": 84,
+    "length": 52,
+    "content": "    def __init__(\n        self,\n        nodes: Optional[Sequence[BaseNode]] = None,\n        objects: Optional[Sequence[IndexNode]] = None,\n        index_struct: Optional[IS] = None,\n        storage_context: Optional[StorageContext] = None,\n        callback_manager: Optional[CallbackManager] = None,\n        transformations: Optional[List[TransformComponent]] = None,\n        show_progress: bool = False,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Initialize with parameters.\"\"\"\n        if index_struct is None and nodes is None and objects is None:\n            raise ValueError(\"One of nodes, objects, or index_struct must be provided.\")\n        if index_struct is not None and nodes is not None and len(nodes) >= 1:\n            raise ValueError(\"Only one of nodes or index_struct can be provided.\")\n        # This is to explicitly make sure that the old UX is not used\n        if nodes is not None and len(nodes) >= 1 and not isinstance(nodes[0], BaseNode):\n            if isinstance(nodes[0], Document):\n                raise ValueError(\n                    \"The constructor now takes in a list of Node objects. \"\n                    \"Since you are passing in a list of Document objects, \"\n                    \"please use `from_documents` instead.\"\n                )\n            else:\n                raise ValueError(\"nodes must be a list of Node objects.\")\n\n        self._storage_context = storage_context or StorageContext.from_defaults()\n        self._docstore = self._storage_context.docstore\n        self._show_progress = show_progress\n        self._vector_store = self._storage_context.vector_store\n        self._graph_store = self._storage_context.graph_store\n        self._callback_manager = callback_manager or Settings.callback_manager\n\n        objects = objects or []\n        self._object_map = {obj.index_id: obj.obj for obj in objects}\n        for obj in objects:\n            obj.obj = None  # clear the object to avoid serialization issues\n\n        with self._callback_manager.as_trace(\"index_construction\"):\n            if index_struct is None:\n                nodes = nodes or []\n                index_struct = self.build_index_from_nodes(\n                    nodes + objects,  # type: ignore\n                    **kwargs,  # type: ignore\n                )\n            self._index_struct = index_struct\n            self._storage_context.index_store.add_index_struct(self._index_struct)"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 261,
+    "end_line": 310,
+    "length": 50,
+    "content": "    def _build_index_from_nodes(\n        self,\n        nodes: Sequence[BaseNode],\n        **insert_kwargs: Any,\n    ) -> IndexDict:\n        \"\"\"Build index from nodes.\"\"\"\n        index_struct = self.index_struct_cls()\n        if self._use_async:\n            tasks = [\n                self._async_add_nodes_to_index(\n                    index_struct,\n                    nodes,\n                    show_progress=self._show_progress,\n                    **insert_kwargs,\n                )\n            ]\n            run_async_tasks(tasks)\n        else:\n            self._add_nodes_to_index(\n                index_struct,\n                nodes,\n                show_progress=self._show_progress,\n                **insert_kwargs,\n            )\n        return index_struct\n\n    def build_index_from_nodes(\n        self,\n        nodes: Sequence[BaseNode],\n        **insert_kwargs: Any,\n    ) -> IndexDict:\n        \"\"\"\n        Build the index from nodes.\n\n        NOTE: Overrides BaseIndex.build_index_from_nodes.\n            VectorStoreIndex only stores nodes in document store\n            if vector store does not store text\n        \"\"\"\n        # Filter out the nodes that don't have content\n        content_nodes = [\n            node\n            for node in nodes\n            if node.get_content(metadata_mode=MetadataMode.EMBED) != \"\"\n        ]\n\n        # Report if some nodes are missing content\n        if len(content_nodes) != len(nodes):\n            print(\"Some nodes are missing content, skipping them...\")\n\n        return self._build_index_from_nodes(content_nodes, **insert_kwargs)"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 220,
+    "end_line": 259,
+    "length": 40,
+    "content": "    def _add_nodes_to_index(\n        self,\n        index_struct: IndexDict,\n        nodes: Sequence[BaseNode],\n        show_progress: bool = False,\n        **insert_kwargs: Any,\n    ) -> None:\n        \"\"\"Add document to index.\"\"\"\n        if not nodes:\n            return\n\n        for nodes_batch in iter_batch(nodes, self._insert_batch_size):\n            nodes_batch = self._get_node_with_embedding(nodes_batch, show_progress)\n            new_ids = self._vector_store.add(nodes_batch, **insert_kwargs)\n\n            if not self._vector_store.stores_text or self._store_nodes_override:\n                # NOTE: if the vector store doesn't store text,\n                # we need to add the nodes to the index struct and document store\n                for node, new_id in zip(nodes_batch, new_ids):\n                    # NOTE: remove embedding from node to avoid duplication\n                    node_without_embedding = node.model_copy()\n                    node_without_embedding.embedding = None\n\n                    index_struct.add_node(node_without_embedding, text_id=new_id)\n                    self._docstore.add_documents(\n                        [node_without_embedding], allow_update=True\n                    )\n            else:\n                # NOTE: if the vector store keeps text,\n                # we only need to add image and index nodes\n                for node, new_id in zip(nodes_batch, new_ids):\n                    if isinstance(node, (ImageNode, IndexNode)):\n                        # NOTE: remove embedding from node to avoid duplication\n                        node_without_embedding = node.model_copy()\n                        node_without_embedding.embedding = None\n\n                        index_struct.add_node(node_without_embedding, text_id=new_id)\n                        self._docstore.add_documents(\n                            [node_without_embedding], allow_update=True\n                        )"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "filename": "base.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/base.py",
+    "start_line": 127,
+    "end_line": 149,
+    "length": 23,
+    "content": "    def _get_node_with_embedding(\n        self,\n        nodes: Sequence[BaseNode],\n        show_progress: bool = False,\n    ) -> List[BaseNode]:\n        \"\"\"\n        Get tuples of id, node, and embedding.\n\n        Allows us to store these nodes in a vector store.\n        Embeddings are called in batches.\n\n        \"\"\"\n        id_to_embed_map = embed_nodes(\n            nodes, self._embed_model, show_progress=show_progress\n        )\n\n        results = []\n        for node in nodes:\n            embedding = id_to_embed_map[node.node_id]\n            result = node.model_copy()\n            result.embedding = embedding\n            results.append(result)\n        return results"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/ingestion/pipeline.py",
+    "filename": "pipeline.py",
+    "relpath": "llama-index-core/llama_index/core/ingestion/pipeline.py",
+    "start_line": 68,
+    "end_line": 101,
+    "length": 34,
+    "content": "def run_transformations(\n    nodes: Sequence[BaseNode],\n    transformations: Sequence[TransformComponent],\n    in_place: bool = True,\n    cache: Optional[IngestionCache] = None,\n    cache_collection: Optional[str] = None,\n    **kwargs: Any,\n) -> Sequence[BaseNode]:\n    \"\"\"\n    Run a series of transformations on a set of nodes.\n\n    Args:\n        nodes: The nodes to transform.\n        transformations: The transformations to apply to the nodes.\n\n    Returns:\n        The transformed nodes.\n    \"\"\"\n    if not in_place:\n        nodes = list(nodes)\n\n    for transform in transformations:\n        if cache is not None:\n            hash = get_transformation_hash(nodes, transform)\n            cached_nodes = cache.get(hash, collection=cache_collection)\n            if cached_nodes is not None:\n                nodes = cached_nodes\n            else:\n                nodes = transform(nodes, **kwargs)\n                cache.put(hash, nodes, collection=cache_collection)\n        else:\n            nodes = transform(nodes, **kwargs)\n\n    return nodes"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/node_parser/interface.py",
+    "filename": "interface.py",
+    "relpath": "llama-index-core/llama_index/core/node_parser/interface.py",
+    "start_line": 147,
+    "end_line": 170,
+    "length": 24,
+    "content": "    def get_nodes_from_documents(\n        self,\n        documents: Sequence[Document],\n        show_progress: bool = False,\n        **kwargs: Any,\n    ) -> List[BaseNode]:\n        \"\"\"Parse documents into nodes.\n\n        Args:\n            documents (Sequence[Document]): documents to parse\n            show_progress (bool): whether to show progress bar\n\n        \"\"\"\n        doc_id_to_document = {doc.id_: doc for doc in documents}\n\n        with self.callback_manager.event(\n            CBEventType.NODE_PARSING, payload={EventPayload.DOCUMENTS: documents}\n        ) as event:\n            nodes = self._parse_nodes(documents, show_progress=show_progress, **kwargs)\n            nodes = self._postprocess_parsed_nodes(nodes, doc_id_to_document)\n\n            event.on_end({EventPayload.NODES: nodes})\n\n        return nodes"
+  },
+  {
+    "filepath": "llama-index-core/llama_index/core/indices/utils.py",
+    "filename": "utils.py",
+    "relpath": "llama-index-core/llama_index/core/indices/utils.py",
+    "start_line": 135,
+    "end_line": 166,
+    "length": 32,
+    "content": "def embed_nodes(\n    nodes: Sequence[BaseNode],\n    embed_model: BaseEmbedding,\n    show_progress: bool = False,\n) -> Dict[str, List[float]]:\n    \"\"\"Embed nodes.\n\n    Args:\n        nodes: The nodes to embed, with texts.get_content() is not None\n        embed_model: The embedding model to use.\n        show_progress: Whether to show a progress bar.\n\n    Returns:\n        A dictionary mapping node ids to embeddings.\n    \"\"\"\n    id_to_embed_map = {}\n\n    texts_to_embed = []\n    ids_to_embed = []\n\n    for node in nodes:\n        if node.embedding is None:\n            ids_to_embed.append(node.node_id)\n            texts_to_embed.append(node.get_content(metadata_mode=MetadataMode.EMBED))\n        else:\n            id_to_embed_map[node.node_id] = node.embedding\n\n    # call embedding model\n    embeddings = embed_model.get_text_embedding_batch(\n        texts_to_embed, show_progress=show_progress\n    )\n    for i, node_id in enumerate(ids_to_embed):\n        id_to_embed_map[node_id] = embeddings[i]\n\n    return id_to_embed_map"
+  }
+]

@@ -1,0 +1,13 @@
+The very first user process in xv6-riscv is created through the `userinit` function, which is located in `proc.c` from lines 175 to 255. Here is a breakdown of the process:
+
+1. The `userinit` function starts by allocating a new process using the `allocproc` function, which is responsible for finding an unused process slot and initializing it. The newly allocated process is stored in the `initproc` global variable.
+
+2. Next, the function sets up the user page table for the process by calling `uvmfirst`, which loads the `initcode` (initial user program) into the first user page of the process's address space. This is done by allocating a user page, copying the `initcode` instructions and data into it, and setting the process size (`p->sz`) to `PGSIZE`.
+
+3. The function then prepares the trapframe for the very first "return" from the kernel to user space by setting the user program counter (`epc`) to 0 and the user stack pointer (`sp`) to `PGSIZE`.
+
+4. The process's name is set to "initcode", and the current working directory (`cwd`) is set to the root directory.
+
+5. Finally, the process state is set to `RUNNABLE`, and the process lock is released.
+
+In summary, the `userinit` function initializes the first user process by allocating a process, setting up its user page table with the `initcode`, preparing the trapframe, setting initial values, and making the process `RUNNABLE`. This process sets the foundation for the execution of user programs in the xv6-riscv operating system.

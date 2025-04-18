@@ -1,0 +1,74 @@
+[
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/schema.py",
+    "filename": "schema.py",
+    "relpath": "llama-index-core/llama_index/core/schema.py",
+    "start_line": 276,
+    "end_line": 296,
+    "length": 21,
+    "content": "    \"\"\"\n    metadata fields\n    - injected as part of the text shown to LLMs as context\n    - injected as part of the text for generating embeddings\n    - used by vector DBs for metadata filtering\n\n    \"\"\"\n    metadata: Dict[str, Any] = Field(\n        default_factory=dict,\n        description=\"A flat dictionary of metadata fields\",\n        alias=\"extra_info\",\n    )\n    excluded_embed_metadata_keys: List[str] = Field(\n        default_factory=list,\n        description=\"Metadata keys that are excluded from text for the embed model.\",\n    )\n    excluded_llm_metadata_keys: List[str] = Field(\n        default_factory=list,\n        description=\"Metadata keys that are excluded from text for the LLM.\",\n    )"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/schema.py",
+    "filename": "schema.py",
+    "relpath": "llama-index-core/llama_index/core/schema.py",
+    "start_line": 324,
+    "end_line": 346,
+    "length": 23,
+    "content": "    def get_metadata_str(self, mode: MetadataMode = MetadataMode.ALL) -> str:\n        \"\"\"Metadata info string.\"\"\"\n        if mode == MetadataMode.NONE:\n            return \"\"\n\n        usable_metadata_keys = set(self.metadata.keys())\n        if mode == MetadataMode.LLM:\n            for key in self.excluded_llm_metadata_keys:\n                if key in usable_metadata_keys:\n                    usable_metadata_keys.remove(key)\n        elif mode == MetadataMode.EMBED:\n            for key in self.excluded_embed_metadata_keys:\n                if key in usable_metadata_keys:\n                    usable_metadata_keys.remove(key)\n\n        return self.metadata_separator.join(\n            [\n                self.metadata_template.format(key=key, value=str(value))\n                for key, value in self.metadata.items()\n                if key in usable_metadata_keys\n            ]\n        )"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 140,
+    "end_line": 182,
+    "length": 43,
+    "content": "class MetadataFilters(BaseModel):\n    \"\"\"Metadata filters for vector stores.\"\"\"\n\n    # Exact match filters and Advanced filters with operators like >, <, >=, <=, !=, etc.\n    filters: List[Union[MetadataFilter, ExactMatchFilter, \"MetadataFilters\"]]\n    # and/or such conditions for combining different filters\n    condition: Optional[FilterCondition] = FilterCondition.AND\n\n    @classmethod\n    @deprecated(\n        \"`from_dict()` is deprecated. \"\n        \"Please use `MetadataFilters(filters=.., condition='and')` directly instead.\"\n    )\n    def from_dict(cls, filter_dict: Dict) -> \"MetadataFilters\":\n        \"\"\"Create MetadataFilters from json.\"\"\"\n        filters = []\n        for k, v in filter_dict.items():\n            filter = MetadataFilter(key=k, value=v, operator=FilterOperator.EQ)\n            filters.append(filter)\n        return cls(filters=filters)\n\n    @classmethod\n    def from_dicts(\n        cls,\n        filter_dicts: List[Dict],\n        condition: Optional[FilterCondition] = FilterCondition.AND,\n    ) -> \"MetadataFilters\":\n        \"\"\"Create MetadataFilters from dicts.\n\n        This takes in a list of individual MetadataFilter objects, along\n        with the condition.\n\n        Args:\n            filter_dicts: List of dicts, each dict is a MetadataFilter.\n            condition: FilterCondition to combine different filters.\n\n        \"\"\"\n        return cls(\n            filters=[\n                MetadataFilter.from_dict(filter_dict) for filter_dict in filter_dicts\n            ],\n            condition=condition,\n        )"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 63,
+    "end_line": 83,
+    "length": 21,
+    "content": "class FilterOperator(str, Enum):\n    \"\"\"Vector store filter operator.\"\"\"\n\n    # TODO add more operators\n    EQ = \"==\"  # default operator (string, int, float)\n    GT = \">\"  # greater than (int, float)\n    LT = \"<\"  # less than (int, float)\n    NE = \"!=\"  # not equal to (string, int, float)\n    GTE = \">=\"  # greater than or equal to (int, float)\n    LTE = \"<=\"  # less than or equal to (int, float)\n    IN = \"in\"  # In array (string or number)\n    NIN = \"nin\"  # Not in array (string or number)\n    ANY = \"any\"  # Contains any (array of strings)\n    ALL = \"all\"  # Contains all (array of strings)\n    TEXT_MATCH = \"text_match\"  # full text match (allows you to search for a specific substring, token or phrase within the text field)\n    TEXT_MATCH_INSENSITIVE = (\n        \"text_match_insensitive\"  # full text match (case insensitive)\n    )\n    CONTAINS = \"contains\"  # metadata array contains value (string or number)\n    IS_EMPTY = \"is_empty\"  # the field is not exist or empty (null or empty array)"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 94,
+    "end_line": 127,
+    "length": 34,
+    "content": "class MetadataFilter(BaseModel):\n    r\"\"\"Comprehensive metadata filter for vector stores to support more operators.\n\n    Value uses Strict* types, as int, float and str are compatible types and were all\n    converted to string before.\n\n    See: https://docs.pydantic.dev/latest/usage/types/#strict-types\n    \"\"\"\n\n    key: str\n    value: Optional[\n        Union[\n            StrictInt,\n            StrictFloat,\n            StrictStr,\n            List[StrictStr],\n            List[StrictFloat],\n            List[StrictInt],\n        ]\n    ]\n    operator: FilterOperator = FilterOperator.EQ\n\n    @classmethod\n    def from_dict(\n        cls,\n        filter_dict: Dict,\n    ) -> \"MetadataFilter\":\n        \"\"\"Create MetadataFilter from dictionary.\n\n        Args:\n            filter_dict: Dict with key, value and operator.\n\n        \"\"\"\n        return MetadataFilter.model_validate(filter_dict)"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 41,
+    "end_line": 70,
+    "length": 30,
+    "content": "    def __init__(\n        self,\n        index: VectorStoreIndex,\n        similarity_top_k: int = DEFAULT_SIMILARITY_TOP_K,\n        vector_store_query_mode: VectorStoreQueryMode = VectorStoreQueryMode.DEFAULT,\n        filters: Optional[MetadataFilters] = None,\n        alpha: Optional[float] = None,\n        node_ids: Optional[List[str]] = None,\n        doc_ids: Optional[List[str]] = None,\n        sparse_top_k: Optional[int] = None,\n        hybrid_top_k: Optional[int] = None,\n        callback_manager: Optional[CallbackManager] = None,\n        object_map: Optional[dict] = None,\n        embed_model: Optional[BaseEmbedding] = None,\n        verbose: bool = False,\n        **kwargs: Any,\n    ) -> None:\n        \"\"\"Initialize params.\"\"\"\n        self._index = index\n        self._vector_store = self._index.vector_store\n        self._embed_model = embed_model or self._index._embed_model\n        self._docstore = self._index.docstore\n\n        self._similarity_top_k = similarity_top_k\n        self._vector_store_query_mode = VectorStoreQueryMode(vector_store_query_mode)\n        self._alpha = alpha\n        self._node_ids = node_ids\n        self._doc_ids = doc_ids\n        self._filters = filters"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "filename": "retriever.py",
+    "relpath": "llama-index-core/llama_index/core/indices/vector_store/retrievers/retriever.py",
+    "start_line": 118,
+    "end_line": 132,
+    "length": 15,
+    "content": "    def _build_vector_store_query(\n        self, query_bundle_with_embeddings: QueryBundle\n    ) -> VectorStoreQuery:\n        return VectorStoreQuery(\n            query_embedding=query_bundle_with_embeddings.embedding,\n            similarity_top_k=self._similarity_top_k,\n            node_ids=self._node_ids,\n            doc_ids=self._doc_ids,\n            query_str=query_bundle_with_embeddings.query_str,\n            mode=self._vector_store_query_mode,\n            alpha=self._alpha,\n            filters=self._filters,\n            sparse_top_k=self._sparse_top_k,\n            hybrid_top_k=self._hybrid_top_k,\n        )"
+  },
+  {
+    "filepath": "/Users/gbenson/Local/git/llama_index/llama-index-core/llama_index/core/vector_stores/types.py",
+    "filename": "types.py",
+    "relpath": "llama-index-core/llama_index/core/vector_stores/types.py",
+    "start_line": 233,
+    "end_line": 258,
+    "length": 26,
+    "content": "@dataclass\nclass VectorStoreQuery:\n    \"\"\"Vector store query.\"\"\"\n\n    query_embedding: Optional[List[float]] = None\n    similarity_top_k: int = 1\n    doc_ids: Optional[List[str]] = None\n    node_ids: Optional[List[str]] = None\n    query_str: Optional[str] = None\n    output_fields: Optional[List[str]] = None\n    embedding_field: Optional[str] = None\n\n    mode: VectorStoreQueryMode = VectorStoreQueryMode.DEFAULT\n\n    # NOTE: only for hybrid search (0 for bm25, 1 for vector search)\n    alpha: Optional[float] = None\n\n    # metadata filters\n    filters: Optional[MetadataFilters] = None\n\n    # only for mmr\n    mmr_threshold: Optional[float] = None\n\n    # NOTE: currently only used by postgres hybrid search\n    sparse_top_k: Optional[int] = None\n    # NOTE: return top k results from hybrid search. similarity_top_k is used for dense search top k\n    hybrid_top_k: Optional[int] = None"
+  }
+]

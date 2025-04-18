@@ -1,0 +1,92 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/entry.S",
+    "filename": "entry.S",
+    "relpath": "kernel/entry.S",
+    "start_line": 1,
+    "end_line": 21,
+    "length": 21,
+    "content": "        # qemu -kernel loads the kernel at 0x80000000\n        # and causes each hart (i.e. CPU) to jump there.\n        # kernel.ld causes the following code to\n        # be placed at 0x80000000.\n.section .text\n.global _entry\n_entry:\n        # set up a stack for C.\n        # stack0 is declared in start.c,\n        # with a 4096-byte stack per CPU.\n        # sp = stack0 + (hartid * 4096)\n        la sp, stack0\n        li a0, 1024*4\n        csrr a1, mhartid\n        addi a1, a1, 1\n        mul a0, a0, a1\n        add sp, sp, a0\n        # jump to start() in start.c\n        call start\nspin:\n        j spin"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/start.c",
+    "filename": "start.c",
+    "relpath": "kernel/start.c",
+    "start_line": 1,
+    "end_line": 49,
+    "length": 49,
+    "content": "#include \"types.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"riscv.h\"\n#include \"defs.h\"\n\nvoid main();\nvoid timerinit();\n\n// entry.S needs one stack per CPU.\n__attribute__ ((aligned (16))) char stack0[4096 * NCPU];\n\n// entry.S jumps here in machine mode on stack0.\nvoid\nstart()\n{\n  // set M Previous Privilege mode to Supervisor, for mret.\n  unsigned long x = r_mstatus();\n  x &= ~MSTATUS_MPP_MASK;\n  x |= MSTATUS_MPP_S;\n  w_mstatus(x);\n\n  // set M Exception Program Counter to main, for mret.\n  // requires gcc -mcmodel=medany\n  w_mepc((uint64)main);\n\n  // disable paging for now.\n  w_satp(0);\n\n  // delegate all interrupts and exceptions to supervisor mode.\n  w_medeleg(0xffff);\n  w_mideleg(0xffff);\n  w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);\n\n  // configure Physical Memory Protection to give supervisor mode\n  // access to all of physical memory.\n  w_pmpaddr0(0x3fffffffffffffull);\n  w_pmpcfg0(0xf);\n\n  // ask for clock interrupts.\n  timerinit();\n\n  // keep each CPU's hartid in its tp register, for cpuid().\n  int id = r_mhartid();\n  w_tp(id);\n\n  // switch to supervisor mode and jump to main().\n  asm volatile(\"mret\");\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/main.c",
+    "filename": "main.c",
+    "relpath": "kernel/main.c",
+    "start_line": 1,
+    "end_line": 45,
+    "length": 45,
+    "content": "#include \"types.h\"\n#include \"param.h\"\n#include \"memlayout.h\"\n#include \"riscv.h\"\n#include \"defs.h\"\n\nvolatile static int started = 0;\n\n// start() jumps here in supervisor mode on all CPUs.\nvoid\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 231,
+    "end_line": 255,
+    "length": 25,
+    "content": "// Set up first user process.\nvoid\nuserinit(void)\n{\n  struct proc *p;\n\n  p = allocproc();\n  initproc = p;\n  \n  // allocate one user page and copy initcode's instructions\n  // and data into it.\n  uvmfirst(p->pagetable, initcode, sizeof(initcode));\n  p->sz = PGSIZE;\n\n  // prepare for the very first \"return\" from kernel to user.\n  p->trapframe->epc = 0;      // user program counter\n  p->trapframe->sp = PGSIZE;  // user stack pointer\n\n  safestrcpy(p->name, \"initcode\", sizeof(p->name));\n  p->cwd = namei(\"/\");\n\n  p->state = RUNNABLE;\n\n  release(&p->lock);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 218,
+    "end_line": 230,
+    "length": 13,
+    "content": "// a user program that calls exec(\"/init\")\n// assembled from ../user/initcode.S\n// od -t xC ../user/initcode\nuchar initcode[] = {\n  0x17, 0x05, 0x00, 0x00, 0x13, 0x05, 0x45, 0x02,\n  0x97, 0x05, 0x00, 0x00, 0x93, 0x85, 0x35, 0x02,\n  0x93, 0x08, 0x70, 0x00, 0x73, 0x00, 0x00, 0x00,\n  0x93, 0x08, 0x20, 0x00, 0x73, 0x00, 0x00, 0x00,\n  0xef, 0xf0, 0x9f, 0xff, 0x2f, 0x69, 0x6e, 0x69,\n  0x74, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00,\n  0x00, 0x00, 0x00, 0x00\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/user/initcode.S",
+    "filename": "initcode.S",
+    "relpath": "user/initcode.S",
+    "start_line": 1,
+    "end_line": 28,
+    "length": 28,
+    "content": "# Initial process that execs /init.\n# This code runs in user space.\n\n#include \"syscall.h\"\n\n# exec(init, argv)\n.globl start\nstart:\n        la a0, init\n        la a1, argv\n        li a7, SYS_exec\n        ecall\n\n# for(;;) exit();\nexit:\n        li a7, SYS_exit\n        ecall\n        jal exit\n\n# char init[] = \"/init\\0\";\ninit:\n  .string \"/init\\0\"\n\n# char *argv[] = { init, 0 };\n.p2align 2\nargv:\n  .quad init\n  .quad 0"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/user/init.c",
+    "filename": "init.c",
+    "relpath": "user/init.c",
+    "start_line": 1,
+    "end_line": 54,
+    "length": 54,
+    "content": "// init: The initial user-level program\n\n#include \"kernel/types.h\"\n#include \"kernel/stat.h\"\n#include \"kernel/spinlock.h\"\n#include \"kernel/sleeplock.h\"\n#include \"kernel/fs.h\"\n#include \"kernel/file.h\"\n#include \"user/user.h\"\n#include \"kernel/fcntl.h\"\n\nchar *argv[] = { \"sh\", 0 };\n\nint\nmain(void)\n{\n  int pid, wpid;\n\n  if(open(\"console\", O_RDWR) < 0){\n    mknod(\"console\", CONSOLE, 0);\n    open(\"console\", O_RDWR);\n  }\n  dup(0);  // stdout\n  dup(0);  // stderr\n\n  for(;;){\n    printf(\"init: starting sh\\n\");\n    pid = fork();\n    if(pid < 0){\n      printf(\"init: fork failed\\n\");\n      exit(1);\n    }\n    if(pid == 0){\n      exec(\"sh\", argv);\n      printf(\"init: exec sh failed\\n\");\n      exit(1);\n    }\n\n    for(;;){\n      // this call to wait() returns if the shell exits,\n      // or if a parentless process exits.\n      wpid = wait((int *) 0);\n      if(wpid == pid){\n        // the shell exited; restart it.\n        break;\n      } else if(wpid < 0){\n        printf(\"init: wait returned an error\\n\");\n        exit(1);\n      } else {\n        // it was a parentless process; do nothing.\n      }\n    }\n  }\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/memlayout.h",
+    "filename": "memlayout.h",
+    "relpath": "kernel/memlayout.h",
+    "start_line": 1,
+    "end_line": 14,
+    "length": 14,
+    "content": "// Physical memory layout\n\n// qemu -machine virt is set up like this,\n// based on qemu's hw/riscv/virt.c:\n//\n// 00001000 -- boot ROM, provided by qemu\n// 02000000 -- CLINT\n// 0C000000 -- PLIC\n// 10000000 -- uart0 \n// 10001000 -- virtio disk \n// 80000000 -- boot ROM jumps here in machine mode\n//             -kernel loads the kernel here\n// unused RAM after 80000000."
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 52,
+    "end_line": 71,
+    "length": 20,
+    "content": "// Initialize the one kernel_pagetable\nvoid\nkvminit(void)\n{\n  kernel_pagetable = kvmmake();\n}\n\n// Switch h/w page table register to the kernel's page table,\n// and enable paging.\nvoid\nkvminithart()\n{\n  // wait for any previous writes to the page table memory to finish.\n  sfence_vma();\n\n  w_satp(MAKE_SATP(kernel_pagetable));\n\n  // flush stale entries from the TLB.\n  sfence_vma();\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/vm.c",
+    "filename": "vm.c",
+    "relpath": "kernel/vm.c",
+    "start_line": 18,
+    "end_line": 50,
+    "length": 33,
+    "content": "// Make a direct-map page table for the kernel.\npagetable_t\nkvmmake(void)\n{\n  pagetable_t kpgtbl;\n\n  kpgtbl = (pagetable_t) kalloc();\n  memset(kpgtbl, 0, PGSIZE);\n\n  // uart registers\n  kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);\n\n  // virtio mmio disk interface\n  kvmmap(kpgtbl, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);\n\n  // PLIC\n  kvmmap(kpgtbl, PLIC, PLIC, 0x4000000, PTE_R | PTE_W);\n\n  // map kernel text executable and read-only.\n  kvmmap(kpgtbl, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);\n\n  // map kernel data and the physical RAM we'll make use of.\n  kvmmap(kpgtbl, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);\n\n  // map the trampoline for trap entry/exit to\n  // the highest virtual address in the kernel.\n  kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);\n\n  // allocate and map a kernel stack for each process.\n  proc_mapstacks(kpgtbl);\n  \n  return kpgtbl;\n}"
+  }
+]

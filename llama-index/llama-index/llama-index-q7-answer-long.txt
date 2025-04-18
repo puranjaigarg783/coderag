@@ -1,0 +1,58 @@
+LlamaIndex Retrieval Strategies for Finding Relevant Nodes
+Based on the provided code chunks, LlamaIndex supports a diverse range of retrieval strategies to find relevant nodes. These can be broadly categorized as follows:
+
+Vector-Based Retrieval
+VectorIndexRetriever: The primary vector retrieval implementation that supports:
+
+Different query modes through vector_store_query_mode parameter
+Filtering by metadata
+Top-k retrieval
+Document ID constraints
+Customization through vector store specific parameters
+Vector Store Query Modes (from VectorStoreQueryMode enum):
+
+DEFAULT: Standard vector similarity search
+SPARSE: Sparse vector retrieval
+HYBRID: Combined dense and sparse retrieval with controllable weighting via alpha parameter
+TEXT_SEARCH: Text-based search
+SEMANTIC_HYBRID: Semantic hybrid search
+Machine learning approaches: SVM, LOGISTIC_REGRESSION, LINEAR_REGRESSION
+MMR (Maximum Marginal Relevance): Balances relevance with diversity
+Knowledge Graph Retrieval
+KGTableRetriever: Retrieves from knowledge graph tables
+KnowledgeGraphRAGRetriever: Specialized for RAG with knowledge graphs
+Tree-Based Retrieval
+TreeAllLeafRetriever: Retrieves all leaf nodes
+TreeSelectLeafEmbeddingRetriever: Uses embeddings to select leaf nodes
+TreeSelectLeafRetriever: Selects specific leaf nodes
+TreeRootRetriever: Retrieves from tree roots
+Property Graph Retrieval
+Multiple specialized retrievers including:
+PGRetriever, CustomPGRetriever
+LLMSynonymRetriever
+CypherTemplateRetriever, TextToCypherRetriever
+VectorContextRetriever
+Keyword and Text-Based Retrieval
+KeywordTableSimpleRetriever: Uses keyword matching
+BM25Retriever: Implements BM25 ranking algorithm (mentioned in exports but not in provided imports)
+SQL-Based Retrieval
+SQLRetriever: Retrieves using SQL
+NLSQLRetriever: Natural language to SQL retrieval
+Meta-Retrieval Strategies
+RouterRetriever: Intelligently selects one or multiple retrievers based on query characteristics
+QueryFusionRetriever: Combines results from multiple retrievers using different fusion modes:
+RECIPROCAL_RANK: Reciprocal rank fusion
+RELATIVE_SCORE: Relative score fusion
+DIST_BASED_SCORE: Distance-based score fusion
+SIMPLE: Simple re-ordering based on original scores
+AutoMergingRetriever: First retrieves chunks from a vector store, then merges related chunks into a unified context
+RecursiveRetriever: Performs recursive retrieval
+Summary-Based Retrieval
+SummaryIndexRetriever
+SummaryIndexEmbeddingRetriever
+SummaryIndexLLMRetriever
+Legacy and Special Purpose Retrievers
+ListIndexRetriever, ListIndexEmbeddingRetriever
+EmptyIndexRetriever
+TransformRetriever
+BaseImageRetriever: Specialized for image retrieval

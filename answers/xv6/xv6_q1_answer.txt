@@ -1,0 +1,17 @@
+When `fork()` is called in xv6-riscv, the operating system creates a new process by following these steps:
+
+1. The `fork()` function in `proc.c` (Lines 255-345) is responsible for creating a new process. It first allocates a new process by calling `allocproc()` to get an unused `struct proc` from the `proc` array.
+
+2. The user memory from the parent process is copied to the child process using `uvmcopy()` to duplicate the address space. This ensures that the child process has a separate copy of the parent's memory.
+
+3. The saved user registers are copied from the parent to the child process.
+
+4. The file descriptors and current working directory (`ofile` and `cwd`) are duplicated from the parent to the child process.
+
+5. The process name is copied from the parent to the child process.
+
+6. The child process is marked as `RUNNABLE`, and its parent is set to the original process.
+
+7. Finally, the child process is returned with a PID value of 0 in the child process (to distinguish between parent and child).
+
+Overall, the `fork()` function in xv6-riscv creates a new process by duplicating the parent process's memory, registers, file descriptors, and other necessary information to ensure that the child process can start execution independently.

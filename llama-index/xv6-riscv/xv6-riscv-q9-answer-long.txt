@@ -1,0 +1,101 @@
+How the First User Process is Created in xv6-riscv
+The creation of the first user process in xv6-riscv follows a carefully orchestrated sequence:
+
+1. Boot Sequence Initialization
+Looking at main.c, we can see that during the kernel's boot sequence, after initializing various subsystems, the kernel calls userinit():
+
+void main() {
+  if(cpuid() == 0) {
+    // Various initializations...
+    userinit();      // first user process
+    // ...
+  }
+  // ...
+}
+2. User Process Creation
+The userinit() function in proc.c is responsible for creating the first user process:
+
+void userinit(void) {
+  struct proc *p;
+  p = allocproc();
+  initproc = p;
+  
+  // allocate one user page and copy initcode's instructions
+  // and data into it.
+  uvmfirst(p->pagetable, initcode, sizeof(initcode));
+  p->sz = PGSIZE;
+
+  // prepare for the very first "return" from kernel to user.
+  p->trapframe->epc = 0;      // user program counter
+  p->trapframe->sp = PGSIZE;  // user stack pointer
+
+  safestrcpy(p->name, "initcode", sizeof(p->name));
+  p->cwd = namei("/");
+  p->state = RUNNABLE;
+  release(&p->lock);
+}
+This function:
+
+Calls allocproc() to find an unused process slot and initialize it
+Sets the global variable initproc to point to this process
+Loads the initial code into the process's address space
+Sets up the process state for execution
+Marks the process as RUNNABLE so the scheduler can run it
+3. Process Structure Allocation
+The allocproc() function:
+
+Finds an unused slot in the process table
+Allocates a trapframe for saving/restoring CPU registers during transitions
+Creates an empty page table for the process
+Sets up the kernel execution context to start at forkret() when scheduled:
+memset(&p->context, 0, sizeof(p->context));
+p->context.ra = (uint64)forkret;
+p->context.sp = p->kstack + PGSIZE;
+4. Loading Initial User Code
+The uvmfirst() function loads the initial code into the process's address space:
+
+void uvmfirst(pagetable_t pagetable, uchar *src, uint sz) {
+  char *mem;
+  mem = kalloc();
+  memset(mem, 0, PGSIZE);
+  mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);
+  memmove(mem, src, sz);
+}
+This function:
+
+Allocates a physical memory page
+Maps virtual address 0 to this physical page with appropriate permissions
+Copies initcode into this page
+5. The Initial User Code
+The initcode is a byte array defined in proc.c, which is the compiled version of initcode.S:
+
+# Initial process that execs /init.
+# This code runs in user space.
+.globl start
+start:
+        la a0, init
+        la a1, argv
+        li a7, SYS_exec
+        ecall
+# ...
+init:
+  .string "/init\0"
+# ...
+This assembly code:
+
+Sets up arguments for the exec system call
+Calls exec("/init", argv) to load and execute the /init program
+6. First Scheduling and Transition to User Space
+When the scheduler runs this process for the first time:
+
+It switches to the kernel context set up in allocproc(), which starts at forkret()
+forkret() performs any one-time initialization and calls usertrapret() to transition to user space
+The CPU then begins executing the initcode at virtual address 0
+The initcode makes an exec system call to run /init
+7. The Init Program Takes Over
+The /init program (from init.c):
+
+Opens the console device for standard I/O
+Sets up file descriptors for stdout and stderr
+Eventually executes the shell (sh), which becomes the ancestor of all other user processes
+This complete sequence creates the very first user process in xv6-riscv, which serves as the foundation for all subsequent user processes.

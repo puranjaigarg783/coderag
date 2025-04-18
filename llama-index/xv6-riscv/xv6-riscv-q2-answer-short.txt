@@ -1,0 +1,1 @@
+File-related syscalls are defined in kernel/sysfile.c. The function sys_open() parses path and flags, then if the O_CREATE flag is set it calls create() to allocate a new inode (file). Otherwise it uses namei() to get the inode. It then allocates a file structure with filealloc() and a file descriptor via fdalloc()​. This is how xv6 implements open(…) internally.

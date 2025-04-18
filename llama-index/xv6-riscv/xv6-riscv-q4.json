@@ -1,0 +1,65 @@
+[
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 437,
+    "end_line": 481,
+    "length": 45,
+    "content": "// Per-CPU process scheduler.\n// Each CPU calls scheduler() after setting itself up.\n// Scheduler never returns.  It loops, doing:\n//  - choose a process to run.\n//  - swtch to start running that process.\n//  - eventually that process transfers control\n//    via swtch back to the scheduler.\nvoid\nscheduler(void)\n{\n  struct proc *p;\n  struct cpu *c = mycpu();\n\n  c->proc = 0;\n  for(;;){\n    // The most recent process to run may have had interrupts\n    // turned off; enable them to avoid a deadlock if all\n    // processes are waiting.\n    intr_on();\n\n    int found = 0;\n    for(p = proc; p < &proc[NPROC]; p++) {\n      acquire(&p->lock);\n      if(p->state == RUNNABLE) {\n        // Switch to chosen process.  It is the process's job\n        // to release its lock and then reacquire it\n        // before jumping back to us.\n        p->state = RUNNING;\n        c->proc = p;\n        swtch(&c->context, &p->context);\n\n        // Process is done running for now.\n        // It should have changed its p->state before coming back.\n        c->proc = 0;\n        found = 1;\n      }\n      release(&p->lock);\n    }\n    if(found == 0) {\n      // nothing to run; stop running on this core until an interrupt.\n      intr_on();\n      asm volatile(\"wfi\");\n    }\n  }\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 483,
+    "end_line": 508,
+    "length": 26,
+    "content": "// Switch to scheduler.  Must hold only p->lock\n// and have changed proc->state. Saves and restores\n// intena because intena is a property of this\n// kernel thread, not this CPU. It should\n// be proc->intena and proc->noff, but that would\n// break in the few places where a lock is held but\n// there's no process.\nvoid\nsched(void)\n{\n  int intena;\n  struct proc *p = myproc();\n\n  if(!holding(&p->lock))\n    panic(\"sched p->lock\");\n  if(mycpu()->noff != 1)\n    panic(\"sched locks\");\n  if(p->state == RUNNING)\n    panic(\"sched running\");\n  if(intr_get())\n    panic(\"sched interruptible\");\n\n  intena = mycpu()->intena;\n  swtch(&p->context, &mycpu()->context);\n  mycpu()->intena = intena;\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.h",
+    "filename": "proc.h",
+    "relpath": "kernel/proc.h",
+    "start_line": 1,
+    "end_line": 27,
+    "length": 27,
+    "content": "// Saved registers for kernel context switches.\nstruct context {\n  uint64 ra;\n  uint64 sp;\n\n  // callee-saved\n  uint64 s0;\n  uint64 s1;\n  uint64 s2;\n  uint64 s3;\n  uint64 s4;\n  uint64 s5;\n  uint64 s6;\n  uint64 s7;\n  uint64 s8;\n  uint64 s9;\n  uint64 s10;\n  uint64 s11;\n};\n\n// Per-CPU state.\nstruct cpu {\n  struct proc *proc;          // The process running on this cpu, or null.\n  struct context context;     // swtch() here to enter scheduler().\n  int noff;                   // Depth of push_off() nesting.\n  int intena;                 // Were interrupts enabled before push_off()?\n};"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/swtch.S",
+    "filename": "swtch.S",
+    "relpath": "kernel/swtch.S",
+    "start_line": 1,
+    "end_line": 40,
+    "length": 40,
+    "content": "# Context switch\n#\n#   void swtch(struct context *old, struct context *new);\n# \n# Save current registers in old. Load from new.\t\n\n\n.globl swtch\nswtch:\n        sd ra, 0(a0)\n        sd sp, 8(a0)\n        sd s0, 16(a0)\n        sd s1, 24(a0)\n        sd s2, 32(a0)\n        sd s3, 40(a0)\n        sd s4, 48(a0)\n        sd s5, 56(a0)\n        sd s6, 64(a0)\n        sd s7, 72(a0)\n        sd s8, 80(a0)\n        sd s9, 88(a0)\n        sd s10, 96(a0)\n        sd s11, 104(a0)\n\n        ld ra, 0(a1)\n        ld sp, 8(a1)\n        ld s0, 16(a1)\n        ld s1, 24(a1)\n        ld s2, 32(a1)\n        ld s3, 40(a1)\n        ld s4, 48(a1)\n        ld s5, 56(a1)\n        ld s6, 64(a1)\n        ld s7, 72(a1)\n        ld s8, 80(a1)\n        ld s9, 88(a1)\n        ld s10, 96(a1)\n        ld s11, 104(a1)\n        \n        ret"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/main.c",
+    "filename": "main.c",
+    "relpath": "kernel/main.c",
+    "start_line": 9,
+    "end_line": 45,
+    "length": 37,
+    "content": "// start() jumps here in supervisor mode on all CPUs.\nvoid\nmain()\n{\n  if(cpuid() == 0){\n    consoleinit();\n    printfinit();\n    printf(\"\\n\");\n    printf(\"xv6 kernel is booting\\n\");\n    printf(\"\\n\");\n    kinit();         // physical page allocator\n    kvminit();       // create kernel page table\n    kvminithart();   // turn on paging\n    procinit();      // process table\n    trapinit();      // trap vectors\n    trapinithart();  // install kernel trap vector\n    plicinit();      // set up interrupt controller\n    plicinithart();  // ask PLIC for device interrupts\n    binit();         // buffer cache\n    iinit();         // inode table\n    fileinit();      // file table\n    virtio_disk_init(); // emulated hard disk\n    userinit();      // first user process\n    __sync_synchronize();\n    started = 1;\n  } else {\n    while(started == 0)\n      ;\n    __sync_synchronize();\n    printf(\"hart %d starting\\n\", cpuid());\n    kvminithart();    // turn on paging\n    trapinithart();   // install kernel trap vector\n    plicinithart();   // ask PLIC for device interrupts\n  }\n\n  scheduler();        \n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.c",
+    "filename": "proc.c",
+    "relpath": "kernel/proc.c",
+    "start_line": 511,
+    "end_line": 519,
+    "length": 9,
+    "content": "// Give up the CPU for one scheduling round.\nvoid\nyield(void)\n{\n  struct proc *p = myproc();\n  acquire(&p->lock);\n  p->state = RUNNABLE;\n  sched();\n  release(&p->lock);\n}"
+  },
+  {
+    "filepath": "/Users/benson/Local/cs486-686/inclass/week06/llama-index/xv6-riscv/kernel/proc.h",
+    "filename": "proc.h",
+    "relpath": "kernel/proc.h",
+    "start_line": 82,
+    "end_line": 107,
+    "length": 26,
+    "content": "enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };\n\n// Per-process state\nstruct proc {\n  struct spinlock lock;\n\n  // p->lock must be held when using these:\n  enum procstate state;        // Process state\n  void *chan;                  // If non-zero, sleeping on chan\n  int killed;                  // If non-zero, have been killed\n  int xstate;                  // Exit status to be returned to parent's wait\n  int pid;                     // Process ID\n\n  // wait_lock must be held when using this:\n  struct proc *parent;         // Parent process\n\n  // these are private to the process, so p->lock need not be held.\n  uint64 kstack;               // Virtual address of kernel stack\n  uint64 sz;                   // Size of process memory (bytes)\n  pagetable_t pagetable;       // User page table\n  struct trapframe *trapframe; // data page for trampoline.S\n  struct context context;      // swtch() here to run process\n  struct file *ofile[NOFILE];  // Open files\n  struct inode *cwd;           // Current directory\n  char name[16];               // Process name (debugging)\n};"
+  }
+]

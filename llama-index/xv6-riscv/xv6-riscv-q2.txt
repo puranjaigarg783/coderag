@@ -1,0 +1,1 @@
+Where is the open system call implemented in xv6, and how does it create new files?

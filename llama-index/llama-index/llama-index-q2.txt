@@ -1,0 +1,1 @@
+Where does LlamaIndex define which embedding model to use for text, and how is it used?

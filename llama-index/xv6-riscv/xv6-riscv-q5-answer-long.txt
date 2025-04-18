@@ -1,0 +1,76 @@
+System Call Dispatch in xv6
+Based on the provided code snippets, xv6 follows a multi-step process to dispatch system calls to the correct kernel functions:
+
+1. Trap Handling (trap.c)
+When a user program executes the ecall instruction to make a system call, the RISC-V CPU raises an exception with cause code 8. The trap handler in trap.c identifies this as a system call:
+
+if(r_scause() == 8){
+  // system call
+  
+  // [...other operations...]
+  
+  // Advance the program counter past the ecall instruction
+  p->trapframe->epc += 4;
+  
+  // Enable interrupts
+  intr_on();
+  
+  // Call the syscall handler
+  syscall();
+}
+2. System Call Identification (syscall.c)
+The syscall() function extracts the system call number from register a7 of the current process's trapframe:
+
+void syscall(void) {
+  int num;
+  struct proc *p = myproc();
+
+  num = p->trapframe->a7;
+  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    // Use num to lookup the system call function for num, call it,
+    // and store its return value in p->trapframe->a0
+    p->trapframe->a0 = syscalls[num]();
+  } else {
+    printf("%d %s: unknown sys call %d\n",
+            p->pid, p->name, num);
+    p->trapframe->a0 = -1;
+  }
+}
+3. Dispatch Table (syscall.c)
+xv6 uses a function pointer array called syscalls to map system call numbers to their corresponding kernel functions:
+
+// An array mapping syscall numbers from syscall.h
+// to the function that handles the system call.
+static uint64 (*syscalls[])(void) = {
+[SYS_fork]    sys_fork,
+[SYS_exit]    sys_exit,
+[SYS_wait]    sys_wait,
+// [...other system calls...]
+[SYS_close]   sys_close,
+};
+4. Argument Retrieval (syscall.c)
+System call arguments are passed in registers a0-a5 and can be retrieved using the argraw function:
+
+static uint64 argraw(int n) {
+  struct proc *p = myproc();
+  switch (n) {
+  case 0:
+    return p->trapframe->a0;
+  case 1:
+    return p->trapframe->a1;
+  // [...cases for a2-a5...]
+  }
+  panic("argraw");
+  return -1;
+}
+Summary
+The system call dispatch mechanism in xv6 works as follows:
+
+A user program executes the ecall instruction with the system call number in register a7 and arguments in registers a0-a5
+The CPU transfers control to the kernel's trap handler
+The trap handler identifies this as a system call (cause code 8) and calls syscall()
+syscall() retrieves the system call number from a7
+It uses this number as an index into the syscalls array to find the correct kernel function
+It calls the function and places the return value in a0 of the trapframe
+Control returns to user space with the result in a0
+This dispatcher design uses a simple array-based lookup table to efficiently map system call numbers to their implementation functions without needing complex conditional logic.

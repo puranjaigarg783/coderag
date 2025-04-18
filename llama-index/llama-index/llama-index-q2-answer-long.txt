@@ -1,0 +1,45 @@
+LlamaIndex Embedding Model Definition and Usage
+Based on the provided code chunks, LlamaIndex defines and manages embedding models through several key components:
+
+Embedding Model Definition
+LlamaIndex defines which embedding model to use for text in two primary locations:
+
+Settings Class (settings.py):
+
+The Settings class maintains a global embedding model configuration
+It provides getter and setter methods for the embed_model property
+If no model is explicitly set, it defaults to calling resolve_embed_model("default")
+Embedding Resolution (embeddings/utils.py):
+
+The resolve_embed_model function is the central factory method that converts various inputs into concrete embedding implementations
+This function handles multiple input types and returns a BaseEmbedding instance
+Default Model Selection
+When no specific model is provided, LlamaIndex's behavior is:
+
+In testing environments (IS_TESTING env var), it uses MockEmbedding
+Otherwise, it attempts to use OpenAIEmbedding from the llama_index.embeddings.openai module
+If OpenAI is unavailable, it suggests alternatives like embed_model='local'
+Model Type Resolution
+The resolve_embed_model function handles multiple embedding sources:
+
+String identifiers:
+
+"default": Uses OpenAI embeddings (with fallback to MockEmbedding for testing)
+"clip:...": Uses CLIP-based embeddings for images (e.g., "clip:ViT-B/32")
+"local:...": Uses Hugging Face embeddings (e.g., "local:sentence-transformers/all-mpnet-base-v2")
+LangChain compatibility: Adapts LangChain embedding models through LangchainEmbedding
+
+Fallback behavior: Uses MockEmbedding if embeddings are explicitly disabled (None)
+
+Embedding Usage
+The BaseEmbedding abstract class defines the interface for all embedding models with these key methods:
+
+_get_text_embedding(self, text: str) -> Embedding: Abstract method that derived classes must implement to embed documents
+
+_get_query_embedding(self, query: str) -> Embedding: Abstract method for embedding queries
+
+get_text_embedding(self, text: str) -> Embedding: Public method that may add special instructions to the raw text before embedding
+
+All concrete embedding implementations inherit from BaseEmbedding and provide specific implementations of these methods, ensuring a consistent interface throughout the system.
+
+

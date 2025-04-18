@@ -1,0 +1,17 @@
+1. Run a query to generate an answer
+python code-rag-updated.py --codebase xv6 retrieve -s -e -f -g -k 10 -q llama-index/xv6-riscv/xv6-riscv-q1.txt -o answers/xv6/xv6_q1_answer.txt
+
+2. Run a query to generate a json of retrieved chunks 
+python code-rag-updated.py --codebase xv6 retrieve -s -e -f -k 10 -q llama-index/xv6-riscv/xv6-riscv-q1.txt -o retrieved/xv6/xv6_q1_retrieved.json
+
+3. Get retrieval stats
+python llama-index/retrieval-perf.py llama-index/xv6-riscv/xv6-riscv-q1.json retrieved/xv6/xv6_q1_retrieved.json > results/xv6/xv6_q1_stats.txt
+
+4. Index
+python code-rag-updated.py --codebase xv6 indexer xv6_chunks.json
+
+5. Chunk
+python code-rag-updated.py --codebase xv6 chunker data/xv6-riscv/ xv6_chunks.json
+
+6. Resetdb
+python code-rag-updated.py --codebase xv6 resetdb

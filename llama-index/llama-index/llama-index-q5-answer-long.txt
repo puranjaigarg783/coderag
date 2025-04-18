@@ -1,0 +1,79 @@
+How LlamaIndex Splits Documents into Chunks (Nodes) Before Indexing
+Based on the provided code chunks, LlamaIndex uses a modular approach to split documents into nodes before indexing. This process is essential for breaking down large documents into manageable pieces for effective storage and retrieval.
+
+Core Architecture
+The splitting process follows this general flow:
+
+Documents are processed by a NodeParser implementation
+The parser's get_nodes_from_documents method orchestrates the splitting process
+For each document, the _parse_nodes method extracts content and creates new nodes
+The specific splitting logic is implemented in concrete TextSplitter subclasses
+Key Classes and Interfaces
+NodeParser (interface.py)
+This is the base abstract class that defines the interface for parsing documents into nodes. The get_nodes_from_documents method shows the overall process:
+
+def get_nodes_from_documents(self, documents: Sequence[Document], ...):
+    # ...
+    nodes = self._parse_nodes(documents, show_progress=show_progress, **kwargs)
+    nodes = self._postprocess_parsed_nodes(nodes, doc_id_to_document)
+    # ...
+    return nodes
+TextSplitter (interface.py)
+TextSplitter extends NodeParser and provides a common implementation for text-based splitting:
+
+class TextSplitter(NodeParser):
+    @abstractmethod
+    def split_text(self, text: str) -> List[str]:
+        ...
+        
+    def _parse_nodes(self, nodes: Sequence[BaseNode], ...):
+        all_nodes: List[BaseNode] = []
+        for node in nodes_with_progress:
+            splits = self.split_text(node.get_content())
+            all_nodes.extend(
+                build_nodes_from_splits(splits, node, id_func=self.id_func)
+            )
+        return all_nodes
+This abstract class requires implementing a split_text method and handles the conversion from text splits to node objects.
+
+Specific Splitter Implementations
+LlamaIndex provides three main text splitters:
+
+1. TokenTextSplitter (token.py)
+Splits text based on tokens with configurable chunk size and overlap:
+
+class TokenTextSplitter(MetadataAwareTextSplitter):
+    chunk_size: int = Field(default=DEFAULT_CHUNK_SIZE)  # 1024 by default
+    chunk_overlap: int = Field(default=DEFAULT_CHUNK_OVERLAP)  # 20 by default
+    separator: str = Field(default=" ")  # Default separator for splitting
+2. SentenceSplitter (sentence.py)
+Prioritizes preserving complete sentences and paragraphs:
+
+class SentenceSplitter(MetadataAwareTextSplitter):
+    """Parse text with a preference for complete sentences.
+    
+    In general, this class tries to keep sentences and paragraphs together. Therefore
+    compared to the original TokenTextSplitter, there are less likely to be
+    hanging sentences or parts of sentences at the end of the node chunk.
+    """
+3. CodeSplitter (code.py)
+Specifically designed for source code using AST parsing:
+
+class CodeSplitter(TextSplitter):
+    """Split code using a AST parser."""
+    
+    def split_text(self, text: str) -> List[str]:
+        tree = self._parser.parse(bytes(text, "utf-8"))
+        chunks = [chunk.strip() for chunk in self._chunk_node(tree.root_node, text)]
+        return chunks
+Summary
+LlamaIndex's document splitting process:
+
+Takes input documents
+Passes them through a NodeParser implementation
+Each document's content is extracted and sent to a specific splitter
+The splitter breaks the content into appropriate chunks
+The chunks are transformed into nodes with metadata and relationships preserved
+These nodes are then ready for indexing
+The system provides specialized splitters for different content types (general text, natural language, code), each with configurable parameters to control chunk size and overlap.
+
